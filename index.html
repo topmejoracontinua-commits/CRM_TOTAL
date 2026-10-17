@@ -5,21 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CRM Total Neumáticos</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
 <style>
 /* Layout: cabecera con marca + pestañas; contenido en una columna ancha; tablas dentro de contenedores con scroll */
 :root{
   --verde:#0a3a2a; --verde-2:#0f4a36; --verde-3:#165a42; --linea:#24705436;
   --blanco:#ffffff; --texto:#e8f1ec; --apagado:#9db8ab;
   --naranja:#f26a21; --amarillo:#ffd21f; --rojo:#ff6b5b; --ok:#5fd68a;
-  --f-display:'Archivo Black','Arial Black',sans-serif;
-  --f-body:'Barlow',system-ui,sans-serif;
-  --f-label:'Barlow Condensed','Arial Narrow',sans-serif;
+  --f-display:'Manrope',system-ui,'Segoe UI',sans-serif;
+  --f-body:'Manrope',system-ui,'Segoe UI',sans-serif;
+  --f-label:'Manrope',system-ui,'Segoe UI',sans-serif;
+  --f-marca:'Archivo Black','Arial Black',sans-serif;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--verde);color:var(--texto);font:15px/1.45 var(--f-body);min-height:100vh;
+body{background:var(--verde);color:var(--texto);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;min-height:100vh;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
 .wrap{max-width:1180px;margin:0 auto}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -27,18 +28,18 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* Marca */
 .marca{display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1;position:relative}
-.marca b{font:900 34px/0.9 var(--f-display);letter-spacing:.02em;color:var(--blanco);position:relative;padding-top:6px}
+.marca b{font:400 34px/0.9 var(--f-marca);letter-spacing:.02em;color:var(--blanco);position:relative;padding-top:6px}
 .marca b::before{content:"";position:absolute;left:-4px;right:-4px;top:-2px;height:14px;border-top:4px solid var(--naranja);border-radius:60% 60% 0 0/100% 100% 0 0}
-.marca i{font:600 11px var(--f-label);letter-spacing:.62em;color:var(--blanco);font-style:normal;margin-top:5px;text-transform:uppercase}
+.marca i{font:700 10.5px var(--f-label);letter-spacing:.5em;color:var(--blanco);font-style:normal;margin-top:5px;text-transform:uppercase}
 .marca.grande b{font-size:64px}.marca.grande i{font-size:17px}
-.westlake{font:900 12px var(--f-display);color:var(--amarillo);letter-spacing:.04em;border:2px solid var(--amarillo);padding:2px 7px;border-radius:3px;white-space:nowrap}
+.westlake{font:400 12px var(--f-marca);color:var(--amarillo);letter-spacing:.04em;border:2px solid var(--amarillo);padding:2px 7px;border-radius:3px;white-space:nowrap}
 
 /* Cabecera */
 header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding:18px 0 14px;border-bottom:1px solid var(--linea)}
 header .quien{margin-left:auto;display:flex;align-items:center;gap:12px;color:var(--apagado);font-size:13px;min-width:0}
 header .quien span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
 nav{display:flex;gap:4px;flex-wrap:wrap;width:100%;order:3}
-nav button{background:none;border:0;padding:10px 16px;font:700 15px var(--f-label);letter-spacing:.12em;text-transform:uppercase;color:var(--apagado);cursor:pointer;border-bottom:3px solid transparent}
+nav button{background:none;border:0;padding:10px 16px;font:600 14.5px var(--f-body);color:var(--apagado);cursor:pointer;border-bottom:3px solid transparent}
 nav button:hover{color:var(--blanco)}
 nav button[aria-selected=true]{color:var(--blanco);border-bottom-color:var(--naranja)}
 .btn{background:var(--naranja);color:#fff;border:0;border-radius:6px;padding:9px 16px;font-weight:700;cursor:pointer}
@@ -47,26 +48,26 @@ nav button[aria-selected=true]{color:var(--blanco);border-bottom-color:var(--nar
 .btn.sec:hover{border-color:var(--apagado)}
 .btn:disabled{opacity:.6;cursor:wait}
 
-h2{font:900 22px var(--f-display);margin:0;letter-spacing:.01em;text-wrap:balance}
+h2{font:800 24px/1.2 var(--f-display);margin:0;letter-spacing:-.02em;text-wrap:balance}
 .sub{color:var(--apagado);font-size:13px}
-.etq{font:700 12px var(--f-label);letter-spacing:.16em;text-transform:uppercase;color:var(--apagado)}
+.etq{font:700 11.5px var(--f-label);letter-spacing:.07em;text-transform:uppercase;color:var(--apagado)}
 section.vista{padding-top:24px}
 .fila{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
 
 /* Indicadores */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:28px}
 .kpi{background:var(--verde-2);border:1px solid var(--linea);border-radius:10px;padding:18px 20px}
-.kpi .n{font:900 46px/1 var(--f-display);color:var(--blanco);font-variant-numeric:tabular-nums;margin-top:8px}
+.kpi .n{font:800 44px/1 var(--f-display);letter-spacing:-.03em;color:var(--blanco);font-variant-numeric:tabular-nums;margin-top:8px}
 .kpi.dest{border-color:var(--amarillo)}
 .kpi.dest .n{color:var(--amarillo)}
 .kpi small{display:block;color:var(--apagado);margin-top:6px;font-size:13px}
 .dos{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px}
 .dos>*{min-width:0}
 .panel{background:var(--verde-2);border:1px solid var(--linea);border-radius:10px;padding:18px 20px}
-.panel h3{margin:0 0 12px;font:700 13px var(--f-label);letter-spacing:.18em;text-transform:uppercase;color:var(--amarillo)}
+.panel h3{margin:0 0 12px;font:700 12px var(--f-label);letter-spacing:.08em;text-transform:uppercase;color:var(--amarillo)}
 .item{display:flex;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--linea)}
 .item:first-of-type{border-top:0}
-.item .hora{font:900 17px var(--f-display);min-width:58px;color:var(--blanco);font-variant-numeric:tabular-nums}
+.item .hora{font:800 16px var(--f-display);min-width:58px;color:var(--blanco);font-variant-numeric:tabular-nums}
 .item .cuerpo{flex:1;min-width:0}
 .item .cuerpo b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vacio{color:var(--apagado);padding:18px 0;text-align:center}
@@ -74,15 +75,15 @@ section.vista{padding-top:24px}
 /* Tablas */
 .tabla{overflow-x:auto;background:var(--verde-2);border:1px solid var(--linea);border-radius:10px}
 table{border-collapse:collapse;width:100%;min-width:760px}
-th{font:700 12px var(--f-label);letter-spacing:.14em;text-transform:uppercase;color:var(--apagado);text-align:left;padding:12px 14px;border-bottom:1px solid var(--linea);white-space:nowrap}
+th{font:600 11.5px var(--f-label);letter-spacing:.06em;text-transform:uppercase;color:var(--apagado);text-align:left;padding:12px 14px;border-bottom:1px solid var(--linea);white-space:nowrap}
 td{padding:11px 14px;border-bottom:1px solid var(--linea);vertical-align:middle}
 tr:last-child td{border-bottom:0}
 tbody tr:hover{background:#ffffff08}
 td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
-.medida{font:700 14px var(--f-label);letter-spacing:.06em;background:var(--verde);border:1px solid var(--verde-3);padding:2px 8px;border-radius:4px;white-space:nowrap}
+.medida{font:700 13px var(--f-label);letter-spacing:.02em;background:var(--verde);border:1px solid var(--verde-3);padding:2px 8px;border-radius:4px;white-space:nowrap}
 
 /* Estados */
-.pill{display:inline-block;font:700 12px var(--f-label);letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px;white-space:nowrap;border:1px solid}
+.pill{display:inline-block;font:700 11px var(--f-label);letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:99px;white-space:nowrap;border:1px solid}
 .p-agendado,.p-agendada{color:var(--amarillo);border-color:var(--amarillo)}
 .p-confirmado{color:var(--ok);border-color:var(--ok)}
 .p-realizado,.p-cerrada{color:var(--blanco);border-color:var(--blanco);background:#ffffff18}
@@ -106,17 +107,50 @@ a.wa:hover{text-decoration:underline}
 .caja input{width:100%;padding:11px 12px}
 .error{color:var(--rojo);font-size:14px;min-height:20px}
 .aviso{background:#ffd21f1c;border:1px solid var(--amarillo);color:var(--amarillo);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:16px}
+/* Pipeline */
+.tablero{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,1fr);gap:14px;overflow-x:auto;padding-bottom:12px;align-items:start}
+.col{background:#00000026;border:1px solid var(--linea);border-radius:10px;padding:12px;min-height:260px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.col.sobre{outline:2px dashed var(--amarillo);outline-offset:-2px}
+.col>h3{margin:2px 2px 4px;font:700 12px var(--f-label);letter-spacing:.07em;text-transform:uppercase;color:var(--texto);display:flex;align-items:center;gap:8px}
+.col>h3 .pt{width:9px;height:9px;border-radius:50%;background:var(--c,var(--apagado))}
+.col>h3 .ct{margin-left:auto;color:var(--apagado);font-variant-numeric:tabular-nums}
+.tarjeta{background:var(--verde-2);border:1px solid var(--linea);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;cursor:grab;min-width:0}
+.tarjeta.arrastra{opacity:.45}
+.tarjeta b{overflow-wrap:anywhere}
+.tarjeta .acc{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tarjeta select{font-size:13px;padding:5px 8px}
+.vacio-col{color:var(--apagado);font-size:13px;text-align:center;padding:18px 6px;border:1px dashed var(--linea);border-radius:8px}
+/* Calendario */
+.seg{display:inline-flex;border:1px solid var(--verde-3);border-radius:8px;overflow:hidden}
+.seg button{background:none;border:0;padding:8px 14px;font-weight:600;color:var(--apagado);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--verde-3);color:var(--blanco)}
+.mesnav{display:flex;align-items:center;gap:8px}
+.mesnav h2{min-width:170px;text-align:center;text-transform:capitalize}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--linea);border:1px solid var(--linea);border-radius:10px;overflow:hidden}
+.cal .dow{background:var(--verde-2);padding:9px 6px;text-align:center;font:700 11.5px var(--f-label);letter-spacing:.06em;color:var(--apagado)}
+.cal .vacia{background:#0000001f;min-height:92px}
+.cal .dia{background:var(--verde-2);min-height:92px;padding:7px;text-align:left;border:0;cursor:pointer;display:flex;flex-direction:column;gap:4px;min-width:0;color:inherit}
+.cal .dia:hover{background:var(--verde-3)}
+.cal .dia.dom{background:#0000001a}
+.cal .dia.sel{outline:2px solid var(--amarillo);outline-offset:-2px}
+.cal .dia .n{font:700 13px var(--f-label);color:var(--apagado);font-variant-numeric:tabular-nums}
+.cal .dia.hoy .n{background:var(--naranja);color:#fff;border-radius:50%;width:24px;height:24px;display:grid;place-items:center}
+.cal .chip{font-size:12px;font-weight:600;background:#ffd21f26;color:var(--amarillo);border-radius:4px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal .chip.ok{background:#5fd68a24;color:var(--ok)}
+.cal .mas{font-size:11.5px;color:var(--apagado)}
+.cal .punto{display:none;font-weight:800;font-size:12px;background:var(--amarillo);color:var(--verde);border-radius:99px;min-width:20px;height:20px;place-items:center;padding:0 5px;align-self:flex-start}
+@media (max-width:640px){.cal .chip,.cal .mas{display:none}.cal .punto{display:inline-grid}.cal .dia,.cal .vacia{min-height:56px;padding:5px}.mesnav h2{min-width:0;font-size:19px}}
 /* Chat */
 .velo{position:fixed;inset:0;background:#031a12cc;display:flex;justify-content:flex-end;z-index:50}
 .velo[hidden]{display:none}
 .cajon{width:min(480px,100%);height:100%;background:var(--verde);border-left:1px solid var(--verde-3);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
 .cajon header{padding:16px 18px;border-bottom:1px solid var(--linea);display:flex;justify-content:space-between;align-items:center;gap:12px}
-.cajon header b{display:block;font:900 17px var(--f-display)}
+.cajon header b{display:block;font:800 18px var(--f-display);letter-spacing:-.01em}
 #chat-cuerpo{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px;background:#00000022}
 .burbuja{max-width:85%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px}
 .burbuja.cli{align-self:flex-start;background:var(--verde-3);border-top-left-radius:3px}
 .burbuja.bot{align-self:flex-end;background:#f26a2124;border:1px solid var(--naranja);border-top-right-radius:3px}
-.burbuja small{display:block;font:700 11px var(--f-label);letter-spacing:.14em;text-transform:uppercase;color:var(--apagado);margin-bottom:3px}
+.burbuja small{display:block;font:700 11px var(--f-label);letter-spacing:.06em;text-transform:uppercase;color:var(--apagado);margin-bottom:3px}
 .burbuja.bot small{color:var(--naranja)}
 .btn.chico{padding:4px 10px;font-size:13px;white-space:nowrap}
 @media (max-width:560px){.marca b{font-size:28px}.kpi .n{font-size:38px}header .quien{margin-left:0;width:100%}}
@@ -147,6 +181,7 @@ a.wa:hover{text-decoration:underline}
     <div class="quien"><span id="usuario"></span><button class="btn sec" id="btn-actualizar" type="button">Actualizar</button><button class="btn sec" id="btn-salir" type="button">Salir</button></div>
     <nav role="tablist" id="tabs">
       <button role="tab" data-v="panel" aria-selected="true">Panel</button>
+      <button role="tab" data-v="pipeline" aria-selected="false">Pipeline</button>
       <button role="tab" data-v="agenda" aria-selected="false">Agenda</button>
       <button role="tab" data-v="consultas" aria-selected="false">Consultas</button>
       <button role="tab" data-v="contactos" aria-selected="false">Contactos</button>
@@ -183,6 +218,11 @@ const waLink = tel => `https://wa.me/${String(tel).replace(/\D/g,'')}`;
 
 let db = null, D = {contactos:[],consultas:[],turnos:[],ind:{total_leads:0,leads_calificados:0,ventas_agendadas:0}};
 let vista = 'panel', fAgenda = 'proximos', fConsulta = 'todas', busca = '';
+let modoAgenda = 'calendario', diaSel = hoyStr(), mes = {y:new Date().getFullYear(), m:new Date().getMonth()};
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const ETAPAS = [
+  {k:'nuevo',t:'Nuevo contacto',c:'#9db8ab'},{k:'abierta',t:'Con interés',c:'#ffd21f'},{k:'derivada',t:'Derivado a asesor',c:'#f26a21'},
+  {k:'agendada',t:'Visita agendada',c:'#5fd68a'},{k:'cerrada',t:'Vendido',c:'#ffffff'},{k:'perdida',t:'Perdido',c:'#ff6b5b'}];
 
 /* ---------- Datos ---------- */
 function demoData(){
@@ -240,7 +280,16 @@ async function abrirChat(ident, nombre){
     cu.scrollTop = cu.scrollHeight;
   }catch(err){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(err.message||err)}. Ejecutá permisos_chat.sql en Supabase.</div>`; }
 }
-document.addEventListener('click', e => { const b = e.target.closest('[data-chat]'); if(b) abrirChat(b.dataset.chat, b.dataset.nombre); });
+document.addEventListener('click', e => {
+  const mo = e.target.closest('[data-modo]'); if(mo){ modoAgenda = mo.dataset.modo; return pintar(); }
+  const me = e.target.closest('[data-mes]'); if(me){ const d = new Date(mes.y, mes.m + Number(me.dataset.mes), 1); mes = {y:d.getFullYear(), m:d.getMonth()}; return pintar(); }
+  if(e.target.closest('[data-hoy]')){ const d = new Date(); mes = {y:d.getFullYear(), m:d.getMonth()}; diaSel = hoyStr(); return pintar(); }
+  const di = e.target.closest('[data-dia]'); if(di){ diaSel = di.dataset.dia; return pintar(); } const b = e.target.closest('[data-chat]'); if(b) abrirChat(b.dataset.chat, b.dataset.nombre); });
+/* Arrastrar tarjetas entre etapas */
+document.addEventListener('dragstart', e => { const t = e.target.closest?.('.tarjeta[data-id]'); if(!t) return; e.dataTransfer.setData('text/plain', t.dataset.id); e.dataTransfer.effectAllowed = 'move'; t.classList.add('arrastra'); });
+document.addEventListener('dragend', e => { e.target.classList?.remove('arrastra'); document.querySelectorAll('.col.sobre').forEach(c => c.classList.remove('sobre')); });
+document.addEventListener('dragover', e => { const c = e.target.closest?.('.col'); if(c && c.dataset.etapa!=='nuevo'){ e.preventDefault(); document.querySelectorAll('.col.sobre').forEach(x => x!==c && x.classList.remove('sobre')); c.classList.add('sobre'); } });
+document.addEventListener('drop', e => { const c = e.target.closest?.('.col'); if(!c || c.dataset.etapa==='nuevo') return; e.preventDefault(); c.classList.remove('sobre'); const id = Number(e.dataTransfer.getData('text/plain')); if(id) moverConsulta(id, c.dataset.etapa); });
 $('#chat-cerrar').addEventListener('click', () => $('#velo').hidden = true);
 $('#velo').addEventListener('click', e => { if(e.target.id==='velo') $('#velo').hidden = true; });
 document.addEventListener('keydown', e => { if(e.key==='Escape') $('#velo').hidden = true; });
@@ -270,6 +319,7 @@ function vPanel(){
   </div></section>`;
 }
 function vAgenda(){
+  if(modoAgenda==='calendario') return vCalendario();
   const h = hoyStr();
   let l = D.turnos;
   if(fAgenda==='proximos') l = l.filter(t => t.fecha>=h && !['cancelado','no_vino','realizado'].includes(t.estado));
@@ -281,7 +331,7 @@ function vAgenda(){
     <td>${esc(t.modalidad||'—')}</td><td class="num">${fmtMoneda(t.total)}</td>
     <td class="sub" style="max-width:220px">${esc(t.observaciones||'')}</td><td>${btnChat(c)}</td>
     <td><select data-t="turnos" data-id="${t.id}" data-c="estado" aria-label="Estado del turno">${ESTADOS_TURNO.map(e => `<option value="${e}" ${e===t.estado?'selected':''}>${e.replace('_',' ')}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
-  return `<section class="vista"><div class="fila"><h2>Agenda</h2><div class="filtros"><select id="f-agenda" aria-label="Filtrar turnos"><option value="proximos">Próximos</option>${['todos',...ESTADOS_TURNO].map(e => `<option value="${e}">${e.replace('_',' ')}</option>`).join('')}</select></div></div>
+  return `<section class="vista"><div class="fila"><h2>Agenda</h2><div class="filtros">${toggleAgenda()}<select id="f-agenda" aria-label="Filtrar turnos"><option value="proximos">Próximos</option>${['todos',...ESTADOS_TURNO].map(e => `<option value="${e}">${e.replace('_',' ')}</option>`).join('')}</select></div></div>
   <div class="tabla"><table><thead><tr><th>Fecha y hora</th><th>Cliente</th><th>Pedido</th><th>Modalidad</th><th>Total</th><th>Observaciones</th><th>Chat</th><th>Estado</th></tr></thead><tbody>${filas || '<tr><td colspan="8" class="vacio">No hay turnos con este filtro.</td></tr>'}</tbody></table></div></section>`;
 }
 function vConsultas(){
@@ -307,7 +357,56 @@ function vContactos(){
   return `<section class="vista"><div class="fila"><h2>Contactos <span class="sub">(${l.length})</span></h2><input type="search" id="busca" value="${esc(busca)}" placeholder="Buscar por nombre o número" aria-label="Buscar contacto" style="min-width:260px"></div>
   <div class="tabla"><table><thead><tr><th>Nombre</th><th>WhatsApp</th><th>País</th><th>Consultas</th><th>Primer contacto</th><th>Último contacto</th><th>Chat</th></tr></thead><tbody>${filas || '<tr><td colspan="7" class="vacio">No hay contactos.</td></tr>'}</tbody></table></div></section>`;
 }
-const VISTAS = {panel:vPanel, agenda:vAgenda, consultas:vConsultas, contactos:vContactos};
+function turnoDe(q){
+  return D.turnos.filter(t => t.consulta_id===q.id && !['cancelado','no_vino'].includes(t.estado)).sort((a,b) => (a.fecha+(a.hora||'')).localeCompare(b.fecha+(b.hora||'')))[0];
+}
+function tarjetaConsulta(q){
+  const c = q.contactos ?? {}, t = turnoDe(q);
+  return `<article class="tarjeta" draggable="true" data-id="${q.id}">
+    <b>${esc(c.nombre||c.identificador||'Sin nombre')}</b>
+    <div>${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
+    ${t ? `<div class="sub">Visita: <b style="display:inline;color:var(--texto)">${fmtFecha(t.fecha)} ${fmtHora(t.hora)}</b> · ${esc(t.modalidad||'')}</div>` : ''}
+    ${q.notas ? `<div class="sub">${esc(q.notas)}</div>` : ''}
+    <div class="sub">${fmtTs(q.creada)}</div>
+    <div class="acc">${btnChat(c)}<select data-mover="${q.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo' && e.k!==q.estado).map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div></article>`;
+}
+function vPipeline(){
+  const conConsulta = new Set(D.consultas.map(q => q.contacto_id));
+  const nuevos = D.contactos.filter(c => !conConsulta.has(c.id));
+  const cols = ETAPAS.map(e => {
+    const items = e.k==='nuevo'
+      ? nuevos.map(c => `<article class="tarjeta" style="cursor:default"><b>${esc(c.nombre||'Sin nombre')}</b><span class="sub">${esc(c.identificador)} · escribió ${fmtTs(c.primer_contacto)}</span><div class="acc">${btnChat(c)}</div></article>`)
+      : D.consultas.filter(q => q.estado===e.k).map(tarjetaConsulta);
+    return `<div class="col" data-etapa="${e.k}" style="--c:${e.c}"><h3><span class="pt"></span>${e.t}<span class="ct">${items.length}</span></h3>${items.join('') || '<div class="vacio-col">Sin elementos</div>'}</div>`;
+  }).join('');
+  return `<section class="vista"><div class="fila"><h2>Pipeline</h2><span class="sub">Arrastrá una tarjeta a otra columna o usá "Mover a…" para cambiar la etapa.</span></div><div class="tablero">${cols}</div></section>`;
+}
+async function moverConsulta(id, etapa){
+  const q = D.consultas.find(x => x.id===id); if(!q || q.estado===etapa) return;
+  const antes = q.estado;
+  try{ await actualizar('consultas', id, {estado:etapa}); q.estado = etapa; pintar(); }
+  catch(err){ q.estado = antes; $('#msg').textContent = 'No se pudo mover: ' + (err.message||err); }
+}
+function toggleAgenda(){
+  return `<div class="seg" role="group" aria-label="Vista de la agenda"><button type="button" data-modo="calendario" aria-pressed="${modoAgenda==='calendario'}">Calendario</button><button type="button" data-modo="lista" aria-pressed="${modoAgenda==='lista'}">Lista</button></div>`;
+}
+function vCalendario(){
+  const {y,m} = mes, offset = (new Date(y,m,1).getDay()+6)%7, dias = new Date(y,m+1,0).getDate(), h = hoyStr();
+  const por = {}; D.turnos.filter(t => t.fecha && !['cancelado','no_vino'].includes(t.estado)).forEach(t => (por[t.fecha] = por[t.fecha] || []).push(t));
+  let celdas = ['L','M','M','J','V','S','D'].map(d => `<div class="dow">${d}</div>`).join('') + '<div class="vacia"></div>'.repeat(offset);
+  for(let d=1; d<=dias; d++){
+    const f = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, ts = (por[f]||[]).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+    const dom = (offset+d-1)%7===6;
+    celdas += `<button type="button" class="dia${dom?' dom':''}${f===h?' hoy':''}${f===diaSel?' sel':''}" data-dia="${f}" aria-label="${d} de ${MESES[m]}, ${ts.length} turnos"><span class="n">${d}</span>${ts.slice(0,2).map(t => `<span class="chip${t.estado==='confirmado'?' ok':''}">${fmtHora(t.hora)} ${esc((cliente(t).nombre||'').split(' ')[0])}</span>`).join('')}${ts.length>2 ? `<span class="mas">+${ts.length-2} más</span>` : ''}${ts.length ? `<span class="punto">${ts.length}</span>` : ''}</button>`;
+  }
+  const delDia = (por[diaSel]||[]).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
+  const detalle = delDia.map(t => { const c = cliente(t), q = t.consultas ?? {}; return `<div class="item"><div class="hora">${fmtHora(t.hora)}</div><div class="cuerpo"><b>${esc(c.nombre||c.identificador||'Sin nombre')}</b><span class="sub">${q.cantidad ? esc(q.cantidad)+' × ' : ''}${esc(q.medida||'')} ${esc(q.modelo||'')} · ${esc(t.modalidad||'')}${t.observaciones ? ' · '+esc(t.observaciones) : ''}</span></div>${btnChat(c)}<select data-t="turnos" data-id="${t.id}" data-c="estado" aria-label="Estado del turno">${ESTADOS_TURNO.map(e => `<option value="${e}" ${e===t.estado?'selected':''}>${e.replace('_',' ')}</option>`).join('')}</select><span class="guardado" hidden>✓</span></div>`; }).join('');
+  const dom = new Date(diaSel+'T00:00:00').getDay()===0;
+  return `<section class="vista"><div class="fila"><div class="mesnav"><button class="btn sec chico" type="button" data-mes="-1" aria-label="Mes anterior">‹</button><h2>${MESES[m]} ${y}</h2><button class="btn sec chico" type="button" data-mes="1" aria-label="Mes siguiente">›</button><button class="btn sec chico" type="button" data-hoy="1">Hoy</button></div>${toggleAgenda()}</div>
+  <div class="cal">${celdas}</div>
+  <div class="panel" style="margin-top:18px"><h3>${fmtFecha(diaSel)}${dom ? ' · Local cerrado' : ''}</h3>${detalle || '<div class="vacio">No hay turnos este día.</div>'}</div></section>`;
+}
+const VISTAS = {panel:vPanel, pipeline:vPipeline, agenda:vAgenda, consultas:vConsultas, contactos:vContactos};
 
 function pintar(){
   const foco = document.activeElement?.id;
@@ -322,6 +421,7 @@ function pintar(){
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if(b){ vista = b.dataset.v; pintar(); } });
 $('#main').addEventListener('change', async e => {
   const el = e.target;
+  if(el.dataset.mover){ const v = el.value; el.value = ''; if(v) moverConsulta(Number(el.dataset.mover), v); return; }
   if(el.id==='f-agenda'){ fAgenda = el.value; return pintar(); }
   if(el.id==='f-consulta'){ fConsulta = el.value; return pintar(); }
   if(el.dataset.t){

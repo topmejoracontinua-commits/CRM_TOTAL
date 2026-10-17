@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRM Total Neumáticos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: cabecera con marca + pestañas; contenido en una columna ancha; tablas dentro de contenedores con scroll */
+:root{
+  --verde:#0a3a2a; --verde-2:#0f4a36; --verde-3:#165a42; --linea:#24705436;
+  --blanco:#ffffff; --texto:#e8f1ec; --apagado:#9db8ab;
+  --naranja:#f26a21; --amarillo:#ffd21f; --rojo:#ff6b5b; --ok:#5fd68a;
+  --f-display:'Archivo Black','Arial Black',sans-serif;
+  --f-body:'Barlow',system-ui,sans-serif;
+  --f-label:'Barlow Condensed','Arial Narrow',sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--verde);color:var(--texto);font:15px/1.45 var(--f-body);min-height:100vh;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+.wrap{max-width:1180px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--amarillo);outline-offset:2px}
+
+/* Marca */
+.marca{display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1;position:relative}
+.marca b{font:900 34px/0.9 var(--f-display);letter-spacing:.02em;color:var(--blanco);position:relative;padding-top:6px}
+.marca b::before{content:"";position:absolute;left:-4px;right:-4px;top:-2px;height:14px;border-top:4px solid var(--naranja);border-radius:60% 60% 0 0/100% 100% 0 0}
+.marca i{font:600 11px var(--f-label);letter-spacing:.62em;color:var(--blanco);font-style:normal;margin-top:5px;text-transform:uppercase}
+.marca.grande b{font-size:64px}.marca.grande i{font-size:17px}
+.westlake{font:900 12px var(--f-display);color:var(--amarillo);letter-spacing:.04em;border:2px solid var(--amarillo);padding:2px 7px;border-radius:3px;white-space:nowrap}
+
+/* Cabecera */
+header{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding:18px 0 14px;border-bottom:1px solid var(--linea)}
+header .quien{margin-left:auto;display:flex;align-items:center;gap:12px;color:var(--apagado);font-size:13px;min-width:0}
+header .quien span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+nav{display:flex;gap:4px;flex-wrap:wrap;width:100%;order:3}
+nav button{background:none;border:0;padding:10px 16px;font:700 15px var(--f-label);letter-spacing:.12em;text-transform:uppercase;color:var(--apagado);cursor:pointer;border-bottom:3px solid transparent}
+nav button:hover{color:var(--blanco)}
+nav button[aria-selected=true]{color:var(--blanco);border-bottom-color:var(--naranja)}
+.btn{background:var(--naranja);color:#fff;border:0;border-radius:6px;padding:9px 16px;font-weight:700;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.sec{background:transparent;border:1px solid var(--verde-3);color:var(--texto)}
+.btn.sec:hover{border-color:var(--apagado)}
+.btn:disabled{opacity:.6;cursor:wait}
+
+h2{font:900 22px var(--f-display);margin:0;letter-spacing:.01em;text-wrap:balance}
+.sub{color:var(--apagado);font-size:13px}
+.etq{font:700 12px var(--f-label);letter-spacing:.16em;text-transform:uppercase;color:var(--apagado)}
+section.vista{padding-top:24px}
+.fila{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+
+/* Indicadores */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:28px}
+.kpi{background:var(--verde-2);border:1px solid var(--linea);border-radius:10px;padding:18px 20px}
+.kpi .n{font:900 46px/1 var(--f-display);color:var(--blanco);font-variant-numeric:tabular-nums;margin-top:8px}
+.kpi.dest{border-color:var(--amarillo)}
+.kpi.dest .n{color:var(--amarillo)}
+.kpi small{display:block;color:var(--apagado);margin-top:6px;font-size:13px}
+.dos{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px}
+.dos>*{min-width:0}
+.panel{background:var(--verde-2);border:1px solid var(--linea);border-radius:10px;padding:18px 20px}
+.panel h3{margin:0 0 12px;font:700 13px var(--f-label);letter-spacing:.18em;text-transform:uppercase;color:var(--amarillo)}
+.item{display:flex;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--linea)}
+.item:first-of-type{border-top:0}
+.item .hora{font:900 17px var(--f-display);min-width:58px;color:var(--blanco);font-variant-numeric:tabular-nums}
+.item .cuerpo{flex:1;min-width:0}
+.item .cuerpo b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vacio{color:var(--apagado);padding:18px 0;text-align:center}
+
+/* Tablas */
+.tabla{overflow-x:auto;background:var(--verde-2);border:1px solid var(--linea);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th{font:700 12px var(--f-label);letter-spacing:.14em;text-transform:uppercase;color:var(--apagado);text-align:left;padding:12px 14px;border-bottom:1px solid var(--linea);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--linea);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#ffffff08}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.medida{font:700 14px var(--f-label);letter-spacing:.06em;background:var(--verde);border:1px solid var(--verde-3);padding:2px 8px;border-radius:4px;white-space:nowrap}
+
+/* Estados */
+.pill{display:inline-block;font:700 12px var(--f-label);letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px;white-space:nowrap;border:1px solid}
+.p-agendado,.p-agendada{color:var(--amarillo);border-color:var(--amarillo)}
+.p-confirmado{color:var(--ok);border-color:var(--ok)}
+.p-realizado,.p-cerrada{color:var(--blanco);border-color:var(--blanco);background:#ffffff18}
+.p-cancelado,.p-perdida,.p-no_vino{color:var(--rojo);border-color:var(--rojo)}
+.p-derivada{color:var(--naranja);border-color:var(--naranja)}
+.p-abierta{color:var(--apagado);border-color:var(--apagado)}
+select,input[type=text],input[type=email],input[type=password],input[type=search]{background:var(--verde);border:1px solid var(--verde-3);border-radius:6px;padding:8px 10px;color:var(--texto);max-width:100%}
+select{cursor:pointer}
+input::placeholder{color:#6f8f80}
+.filtros{display:flex;gap:10px;flex-wrap:wrap}
+a.wa{color:var(--ok);text-decoration:none;font-weight:600}
+a.wa:hover{text-decoration:underline}
+.guardado{color:var(--ok);font-size:12px;margin-left:6px}
+
+/* Login */
+#login[hidden]{display:none}
+#login{display:grid;place-items:center;min-height:100vh;padding-block:40px}
+.caja{width:100%;max-width:400px;display:flex;flex-direction:column;gap:18px}
+.caja form{background:var(--verde-2);border:1px solid var(--linea);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.caja label{display:flex;flex-direction:column;gap:6px}
+.caja input{width:100%;padding:11px 12px}
+.error{color:var(--rojo);font-size:14px;min-height:20px}
+.aviso{background:#ffd21f1c;border:1px solid var(--amarillo);color:var(--amarillo);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:16px}
+@media (max-width:560px){.marca b{font-size:28px}.kpi .n{font-size:38px}header .quien{margin-left:0;width:100%}}
+@media (prefers-reduced-motion:no-preference){.vista{animation:ent .25s ease}@keyframes ent{from{opacity:.0;transform:translateY(4px)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+
+<div id="login" hidden>
+  <div class="caja">
+    <div class="marca grande"><b>TOTAL</b><i>Neumáticos</i></div>
+    <form id="form-login">
+      <div class="etq">Ingreso del equipo</div>
+      <label>Correo<input id="email" type="email" autocomplete="username" required></label>
+      <label>Contraseña<input id="clave" type="password" autocomplete="current-password" required></label>
+      <div class="error" id="login-error" role="alert"></div>
+      <button class="btn" id="btn-login" type="submit">Ingresar</button>
+    </form>
+    <div style="text-align:center"><span class="westlake">WEST LAKE® NEUMÁTICOS</span></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+<div class="wrap">
+  <header>
+    <div class="marca"><b>TOTAL</b><i>Neumáticos</i></div>
+    <span class="westlake">WEST LAKE®</span>
+    <div class="quien"><span id="usuario"></span><button class="btn sec" id="btn-actualizar" type="button">Actualizar</button><button class="btn sec" id="btn-salir" type="button">Salir</button></div>
+    <nav role="tablist" id="tabs">
+      <button role="tab" data-v="panel" aria-selected="true">Panel</button>
+      <button role="tab" data-v="agenda" aria-selected="false">Agenda</button>
+      <button role="tab" data-v="consultas" aria-selected="false">Consultas</button>
+      <button role="tab" data-v="contactos" aria-selected="false">Contactos</button>
+    </nav>
+  </header>
+  <div id="demo-aviso" class="aviso" hidden>Modo demostración: estos datos son de ejemplo. Completá SUPABASE_URL y SUPABASE_KEY en este archivo para ver los datos reales.</div>
+  <div id="msg" class="error" role="alert"></div>
+  <main id="main"></main>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ====== CONFIGURACIÓN: pegá acá los datos de tu proyecto (Supabase → Settings → API Keys) ====== */
+const SUPABASE_URL = 'https://snceuadecqvdsowcotxd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_CheOYNpuoS0tG2bqhqULsg_koJ2wqfn'; // clave publishable (es pública por diseño)
+/* ================================================================================================ */
+
+const DEMO = !SUPABASE_URL || !SUPABASE_KEY;
+const ESTADOS_TURNO = ['agendado','confirmado','realizado','cancelado','no_vino'];
+const ESTADOS_CONSULTA = ['abierta','agendada','derivada','cerrada','perdida'];
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const etiqueta = e => esc(String(e).replace('_',' '));
+const pill = e => `<span class="pill p-${esc(e)}">${etiqueta(e)}</span>`;
+const hoyStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const fmtFecha = f => { if(!f) return '—'; const [y,m,d] = f.split('-'); return `${d}/${m}/${y}`; };
+const fmtHora = h => h ? h.slice(0,5) : '—';
+const fmtMoneda = n => n==null ? '—' : 'USD ' + Number(n).toLocaleString('es-PY',{maximumFractionDigits:2});
+const fmtTs = t => { const d = new Date(t); return d.toLocaleDateString('es-PY',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'}); };
+const waLink = tel => `https://wa.me/${String(tel).replace(/\D/g,'')}`;
+
+let db = null, D = {contactos:[],consultas:[],turnos:[],ind:{total_leads:0,leads_calificados:0,ventas_agendadas:0}};
+let vista = 'panel', fAgenda = 'proximos', fConsulta = 'todas', busca = '';
+
+/* ---------- Datos ---------- */
+function demoData(){
+  const h = hoyStr(), d = n => { const x = new Date(); x.setDate(x.getDate()+n); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; };
+  const contactos = [
+    {id:1,canal:'whatsapp',identificador:'595981000111',nombre:'Marcelo Benítez',pais:'Paraguay',primer_contacto:new Date(Date.now()-86400000*3).toISOString(),ultimo_contacto:new Date().toISOString()},
+    {id:2,canal:'whatsapp',identificador:'595971222333',nombre:'Lucía Ferreira',pais:'Paraguay',primer_contacto:new Date(Date.now()-86400000*2).toISOString(),ultimo_contacto:new Date(Date.now()-3600000*5).toISOString()},
+    {id:3,canal:'whatsapp',identificador:'5493764555666',nombre:'Gustavo Rojas',pais:'Argentina',primer_contacto:new Date(Date.now()-86400000).toISOString(),ultimo_contacto:new Date(Date.now()-3600000*2).toISOString()},
+    {id:4,canal:'whatsapp',identificador:'595985777888',nombre:'Ana Giménez',pais:'Paraguay',primer_contacto:new Date().toISOString(),ultimo_contacto:new Date().toISOString()}];
+  const consultas = [
+    {id:1,contacto_id:1,medida:'265/60R18',modelo:'Westlake SU318',cantidad:4,lead_calificado:true,estado:'agendada',creada:new Date(Date.now()-3600000*6).toISOString(),notas:null,contactos:contactos[0]},
+    {id:2,contacto_id:2,medida:'205/55R16',modelo:'Hankook Kinergy',cantidad:2,lead_calificado:true,estado:'agendada',creada:new Date(Date.now()-3600000*30).toISOString(),notas:'Prefiere colocación por la mañana',contactos:contactos[1]},
+    {id:3,contacto_id:3,medida:'255/70R16',modelo:null,cantidad:4,lead_calificado:true,estado:'derivada',creada:new Date(Date.now()-3600000*3).toISOString(),notas:'Pidió hablar con un asesor',contactos:contactos[2]},
+    {id:4,contacto_id:4,medida:'215/55R18',modelo:null,cantidad:null,lead_calificado:false,estado:'abierta',creada:new Date().toISOString(),notas:null,contactos:contactos[3]}];
+  const turnos = [
+    {id:1,consulta_id:1,modalidad:'Colocación en el local',fecha:h,hora:'09:30:00',precio_unitario:null,total:null,estado:'agendado',observaciones:'Ejemplo: 4 cubiertas, con alineación',creado:new Date().toISOString(),consultas:consultas[0]},
+    {id:2,consulta_id:2,modalidad:'Retira en el local',fecha:d(1),hora:'11:00:00',precio_unitario:null,total:null,estado:'confirmado',observaciones:null,creado:new Date().toISOString(),consultas:consultas[1]}];
+  return {contactos,consultas,turnos,ind:{total_leads:4,leads_calificados:3,ventas_agendadas:2}};
+}
+async function cargar(){
+  $('#msg').textContent = '';
+  if(DEMO){ if(!D.contactos.length) D = demoData(); return; }
+  const [c,q,t,i] = await Promise.all([
+    db.from('contactos').select('*').order('ultimo_contacto',{ascending:false}).limit(1000),
+    db.from('consultas').select('*, contactos(nombre,identificador,pais)').order('creada',{ascending:false}).limit(1000),
+    db.from('turnos').select('*, consultas(medida,modelo,cantidad,contactos(nombre,identificador))').order('fecha',{ascending:true}).order('hora',{ascending:true}).limit(1000),
+    db.from('indicadores').select('*').single()]);
+  const fallo = [c,q,t,i].find(r => r.error);
+  if(fallo) throw fallo.error;
+  D = {contactos:c.data, consultas:q.data, turnos:t.data, ind:i.data};
+}
+async function actualizar(tabla, id, campos){
+  if(DEMO){ const fila = D[tabla].find(x => x.id===id); Object.assign(fila, campos); return; }
+  const {error} = await db.from(tabla).update(campos).eq('id', id);
+  if(error) throw error;
+}
+
+/* ---------- Vistas ---------- */
+const cliente = t => t?.consultas?.contactos ?? {};
+function filaTurno(t){
+  const c = cliente(t), q = t.consultas ?? {};
+  return `<div class="item"><div class="hora">${fmtHora(t.hora)}</div><div class="cuerpo"><b>${esc(c.nombre || c.identificador || 'Sin nombre')}</b><span class="sub">${q.cantidad ? esc(q.cantidad)+' × ' : ''}${esc(q.medida||'')} ${esc(q.modelo||'')} · ${esc(t.modalidad||'')}</span></div>${pill(t.estado)}</div>`;
+}
+function vPanel(){
+  const h = hoyStr(), i = D.ind;
+  const hoy = D.turnos.filter(t => t.fecha===h && !['cancelado','no_vino'].includes(t.estado));
+  const prox = D.turnos.filter(t => t.fecha>h && !['cancelado','no_vino'].includes(t.estado)).slice(0,5);
+  const abiertas = D.consultas.filter(q => ['abierta','derivada'].includes(q.estado)).slice(0,6);
+  const conv = i.leads_calificados ? Math.round(i.ventas_agendadas/i.leads_calificados*100) : 0;
+  return `<section class="vista">
+  <div class="kpis">
+    <div class="kpi"><div class="etq">Leads totales</div><div class="n">${esc(i.total_leads)}</div><small>Personas que escribieron</small></div>
+    <div class="kpi"><div class="etq">Leads calificados</div><div class="n">${esc(i.leads_calificados)}</div><small>Con medida y intención de compra</small></div>
+    <div class="kpi dest"><div class="etq">Ventas agendadas</div><div class="n">${esc(i.ventas_agendadas)}</div><small>${conv}% de los calificados</small></div>
+  </div>
+  <div class="dos">
+    <div class="panel"><h3>Agenda de hoy · ${fmtFecha(h)}</h3>${hoy.length ? hoy.map(filaTurno).join('') : '<div class="vacio">No hay turnos para hoy.</div>'}
+      ${prox.length ? `<h3 style="margin-top:20px">Próximos turnos</h3>${prox.map(t => `<div class="item"><div class="hora" style="font-size:14px">${fmtFecha(t.fecha).slice(0,5)}</div>${filaTurno(t).replace('<div class="item">','').replace(/<\/div>$/,'')}</div>`).join('')}` : ''}</div>
+    <div class="panel"><h3>Para atender</h3>${abiertas.length ? abiertas.map(q => `<div class="item"><div class="cuerpo"><b>${esc(q.contactos?.nombre || q.contactos?.identificador || 'Sin nombre')}</b><span class="sub">${q.medida ? `<span class="medida">${esc(q.medida)}</span> ` : ''}${fmtTs(q.creada)}${q.notas ? ' · '+esc(q.notas) : ''}</span></div>${pill(q.estado)}</div>`).join('') : '<div class="vacio">Todo al día.</div>'}</div>
+  </div></section>`;
+}
+function vAgenda(){
+  const h = hoyStr();
+  let l = D.turnos;
+  if(fAgenda==='proximos') l = l.filter(t => t.fecha>=h && !['cancelado','no_vino','realizado'].includes(t.estado));
+  else if(fAgenda!=='todos') l = l.filter(t => t.estado===fAgenda);
+  const filas = l.map(t => { const c = cliente(t), q = t.consultas ?? {}; return `<tr>
+    <td class="num"><b>${fmtFecha(t.fecha)}</b> ${fmtHora(t.hora)}</td>
+    <td>${esc(c.nombre||'Sin nombre')}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
+    <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
+    <td>${esc(t.modalidad||'—')}</td><td class="num">${fmtMoneda(t.total)}</td>
+    <td class="sub" style="max-width:220px">${esc(t.observaciones||'')}</td>
+    <td><select data-t="turnos" data-id="${t.id}" data-c="estado" aria-label="Estado del turno">${ESTADOS_TURNO.map(e => `<option value="${e}" ${e===t.estado?'selected':''}>${e.replace('_',' ')}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
+  return `<section class="vista"><div class="fila"><h2>Agenda</h2><div class="filtros"><select id="f-agenda" aria-label="Filtrar turnos"><option value="proximos">Próximos</option>${['todos',...ESTADOS_TURNO].map(e => `<option value="${e}">${e.replace('_',' ')}</option>`).join('')}</select></div></div>
+  <div class="tabla"><table><thead><tr><th>Fecha y hora</th><th>Cliente</th><th>Pedido</th><th>Modalidad</th><th>Total</th><th>Observaciones</th><th>Estado</th></tr></thead><tbody>${filas || '<tr><td colspan="7" class="vacio">No hay turnos con este filtro.</td></tr>'}</tbody></table></div></section>`;
+}
+function vConsultas(){
+  let l = D.consultas;
+  if(fConsulta==='calificadas') l = l.filter(q => q.lead_calificado);
+  else if(fConsulta!=='todas') l = l.filter(q => q.estado===fConsulta);
+  const filas = l.map(q => { const c = q.contactos ?? {}; return `<tr>
+    <td class="num">${fmtTs(q.creada)}</td>
+    <td>${esc(c.nombre||'Sin nombre')}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
+    <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
+    <td>${q.lead_calificado ? pill('confirmado').replace('confirmado','calificado') : '<span class="sub">—</span>'}</td>
+    <td><select data-t="consultas" data-id="${q.id}" data-c="estado" aria-label="Estado de la consulta">${ESTADOS_CONSULTA.map(e => `<option value="${e}" ${e===q.estado?'selected':''}>${e}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td>
+    <td><input type="text" data-t="consultas" data-id="${q.id}" data-c="notas" value="${esc(q.notas||'')}" placeholder="Agregar nota" aria-label="Nota" style="width:100%;min-width:180px"><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
+  return `<section class="vista"><div class="fila"><h2>Consultas</h2><div class="filtros"><select id="f-consulta" aria-label="Filtrar consultas"><option value="todas">Todas</option><option value="calificadas">Calificadas</option>${ESTADOS_CONSULTA.map(e => `<option value="${e}">${e}</option>`).join('')}</select></div></div>
+  <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Pedido</th><th>Lead</th><th>Estado</th><th>Notas</th></tr></thead><tbody>${filas || '<tr><td colspan="6" class="vacio">No hay consultas con este filtro.</td></tr>'}</tbody></table></div></section>`;
+}
+function vContactos(){
+  const b = busca.trim().toLowerCase();
+  const l = D.contactos.filter(c => !b || (c.nombre||'').toLowerCase().includes(b) || (c.identificador||'').includes(b));
+  const n = id => D.consultas.filter(q => q.contacto_id===id).length;
+  const filas = l.map(c => `<tr><td><b>${esc(c.nombre||'Sin nombre')}</b></td><td><a class="wa" href="${waLink(c.identificador)}" target="_blank" rel="noopener">${esc(c.identificador)}</a></td><td>${esc(c.pais||'—')}</td><td class="num">${n(c.id)}</td><td class="num">${fmtTs(c.primer_contacto)}</td><td class="num">${fmtTs(c.ultimo_contacto)}</td></tr>`).join('');
+  return `<section class="vista"><div class="fila"><h2>Contactos <span class="sub">(${l.length})</span></h2><input type="search" id="busca" value="${esc(busca)}" placeholder="Buscar por nombre o número" aria-label="Buscar contacto" style="min-width:260px"></div>
+  <div class="tabla"><table><thead><tr><th>Nombre</th><th>WhatsApp</th><th>País</th><th>Consultas</th><th>Primer contacto</th><th>Último contacto</th></tr></thead><tbody>${filas || '<tr><td colspan="6" class="vacio">No hay contactos.</td></tr>'}</tbody></table></div></section>`;
+}
+const VISTAS = {panel:vPanel, agenda:vAgenda, consultas:vConsultas, contactos:vContactos};
+
+function pintar(){
+  const foco = document.activeElement?.id;
+  $('#main').innerHTML = VISTAS[vista]();
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.v===vista));
+  const fa = $('#f-agenda'); if(fa) fa.value = fAgenda;
+  const fc = $('#f-consulta'); if(fc) fc.value = fConsulta;
+  if(foco==='busca'){ const i = $('#busca'); i.focus(); i.setSelectionRange(i.value.length,i.value.length); }
+}
+
+/* ---------- Eventos ---------- */
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if(b){ vista = b.dataset.v; pintar(); } });
+$('#main').addEventListener('change', async e => {
+  const el = e.target;
+  if(el.id==='f-agenda'){ fAgenda = el.value; return pintar(); }
+  if(el.id==='f-consulta'){ fConsulta = el.value; return pintar(); }
+  if(el.dataset.t){
+    try{
+      await actualizar(el.dataset.t, Number(el.dataset.id), {[el.dataset.c]: el.value.trim()===''&&el.dataset.c==='notas' ? null : el.value});
+      const ok = el.parentElement.querySelector('.guardado'); if(ok){ ok.hidden = false; setTimeout(()=>ok.hidden = true, 1800); }
+      if(!DEMO && el.dataset.t==='turnos') await recargar(false);
+    }catch(err){ $('#msg').textContent = 'No se pudo guardar: ' + (err.message||err); }
+  }
+});
+$('#main').addEventListener('input', e => { if(e.target.id==='busca'){ busca = e.target.value; pintar(); } });
+async function recargar(repintar=true){
+  try{ await cargar(); if(repintar) pintar(); }catch(err){ $('#msg').textContent = 'No se pudieron cargar los datos: ' + (err.message||err) + '. Revisá que hayas ejecutado el SQL de permisos.'; }
+}
+$('#btn-actualizar').addEventListener('click', () => recargar());
+
+/* ---------- Sesión ---------- */
+function mostrarApp(email){
+  $('#login').hidden = true; $('#app').hidden = false;
+  $('#usuario').textContent = email; $('#demo-aviso').hidden = !DEMO;
+  recargar();
+  clearInterval(window.__t); window.__t = setInterval(() => recargar(), 60000);
+}
+$('#form-login').addEventListener('submit', async e => {
+  e.preventDefault();
+  const b = $('#btn-login'); b.disabled = true; $('#login-error').textContent = '';
+  const {data, error} = await db.auth.signInWithPassword({email:$('#email').value.trim(), password:$('#clave').value});
+  b.disabled = false;
+  if(error){ $('#login-error').textContent = 'Correo o contraseña incorrectos.'; return; }
+  mostrarApp(data.user.email);
+});
+$('#btn-salir').addEventListener('click', async () => {
+  clearInterval(window.__t);
+  if(!DEMO) await db.auth.signOut();
+  $('#app').hidden = true; $('#login').hidden = false; $('#clave').value = '';
+  if(DEMO) mostrarApp('demo@totalneumaticos');
+});
+(async function iniciar(){
+  if(DEMO){ mostrarApp('demo@totalneumaticos'); return; }
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const {data} = await db.auth.getSession();
+  if(data.session) mostrarApp(data.session.user.email); else $('#login').hidden = false;
+})();
+</script>
+</body>
+</html>

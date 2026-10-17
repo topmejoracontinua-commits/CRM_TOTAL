@@ -142,6 +142,22 @@ a.wa:hover{text-decoration:underline}
 .cal .mas{font-size:11.5px;color:var(--apagado)}
 .cal .punto{display:none;font-weight:800;font-size:12px;background:var(--amarillo);color:var(--verde);border-radius:99px;min-width:20px;height:20px;place-items:center;padding:0 5px;align-self:flex-start}
 @media (max-width:640px){.cal .chip,.cal .mas{display:none}.cal .punto{display:inline-grid}.cal .dia,.cal .vacia{min-height:56px;padding:5px}.mesnav h2{min-width:0;font-size:19px}}
+/* Ingresos */
+.ing{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px;align-items:end}
+.ing .cifras{display:grid;grid-template-columns:1fr 1fr;gap:18px 16px}
+.ing .cifras .grande{grid-column:1/-1}
+.ing .v{font:800 28px/1.1 var(--f-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:4px}
+.ing .grande .v{font-size:40px;color:var(--amarillo)}
+.barras{display:flex;gap:10px;align-items:flex-end;height:150px}
+.barras .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%;min-width:0}
+.barras .b i{display:block;width:100%;max-width:44px;border-radius:5px 5px 0 0;background:var(--verde-3);min-height:3px}
+.barras .b.act i{background:var(--amarillo)}
+.barras .b span{font-size:11.5px;color:var(--apagado);text-transform:capitalize}
+.barras .b em{font-style:normal;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.velo.centro{justify-content:center;align-items:center;padding:16px}
+.modal{background:var(--verde);border:1px solid var(--verde-3);border-radius:12px;padding:22px;width:min(420px,100%);display:flex;flex-direction:column;gap:14px}
+.modal label{display:flex;flex-direction:column;gap:6px}
+.modal input{width:100%;padding:11px 12px;font-size:18px;font-weight:700}
 /* Chat */
 .velo{position:fixed;inset:0;background:#031a12cc;display:flex;justify-content:flex-end;z-index:50}
 .velo[hidden]{display:none}
@@ -197,6 +213,8 @@ a.wa:hover{text-decoration:underline}
 
 <div class="velo" id="velo" hidden><div class="cajon" role="dialog" aria-modal="true" aria-labelledby="chat-titulo"><header><div><b id="chat-titulo"></b><span class="sub" id="chat-sub"></span></div><button class="btn sec" id="chat-cerrar" type="button">Cerrar</button></header><div id="chat-cuerpo"></div></div></div>
 
+<div class="velo centro" id="venta" hidden><form class="modal" id="form-venta" role="dialog" aria-modal="true" aria-labelledby="venta-t"><h2 id="venta-t" style="font-size:20px">Registrar venta</h2><div class="sub" id="venta-sub"></div><label>Monto cobrado (USD)<input id="venta-monto" type="number" min="0" step="0.01" inputmode="decimal" required></label><div class="error" id="venta-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="venta-cancelar">Cancelar</button><button class="btn" type="submit" id="venta-ok">Guardar venta</button></div></form></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 /* ====== CONFIGURACIÓN: pegá acá los datos de tu proyecto (Supabase → Settings → API Keys) ====== */
@@ -239,6 +257,9 @@ function demoData(){
     {id:2,contacto_id:2,medida:'205/55R16',modelo:'Hankook Kinergy',cantidad:2,lead_calificado:true,estado:'agendada',creada:new Date(Date.now()-3600000*30).toISOString(),notas:'Prefiere colocación por la mañana',contactos:contactos[1]},
     {id:3,contacto_id:3,medida:'255/70R16',modelo:null,cantidad:4,lead_calificado:true,estado:'derivada',creada:new Date(Date.now()-3600000*3).toISOString(),notas:'Pidió hablar con un asesor',contactos:contactos[2]},
     {id:4,contacto_id:4,medida:'215/55R18',modelo:null,cantidad:null,lead_calificado:false,estado:'abierta',creada:new Date().toISOString(),notas:null,contactos:contactos[3]}];
+  consultas.push({id:5,contacto_id:2,medida:'225/65R17',modelo:'Westlake',cantidad:4,lead_calificado:true,estado:'cerrada',monto:520,cerrada_en:new Date().toISOString(),creada:new Date(Date.now()-86400000*4).toISOString(),notas:null,contactos:contactos[1]},
+    {id:6,contacto_id:3,medida:'195/65R15',modelo:'Hankook',cantidad:4,lead_calificado:true,estado:'cerrada',monto:380,cerrada_en:new Date(Date.now()-86400000*38).toISOString(),creada:new Date(Date.now()-86400000*40).toISOString(),notas:null,contactos:contactos[2]},
+    {id:7,contacto_id:1,medida:'215/60R16',modelo:'Westlake',cantidad:2,lead_calificado:true,estado:'cerrada',monto:210,cerrada_en:new Date(Date.now()-86400000*70).toISOString(),creada:new Date(Date.now()-86400000*71).toISOString(),notas:null,contactos:contactos[0]});
   const turnos = [
     {id:1,consulta_id:1,modalidad:'Colocación en el local',fecha:h,hora:'09:30:00',precio_unitario:null,total:null,estado:'agendado',observaciones:'Ejemplo: 4 cubiertas, con alineación',creado:new Date().toISOString(),consultas:consultas[0]},
     {id:2,consulta_id:2,modalidad:'Retira en el local',fecha:d(1),hora:'11:00:00',precio_unitario:null,total:null,estado:'confirmado',observaciones:null,creado:new Date().toISOString(),consultas:consultas[1]}];
@@ -283,6 +304,7 @@ async function abrirChat(ident, nombre){
   }catch(err){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(err.message||err)}. Ejecutá permisos_chat.sql en Supabase.</div>`; }
 }
 document.addEventListener('click', e => {
+  const mt = e.target.closest('[data-monto]'); if(mt) return pedirMonto(Number(mt.dataset.monto), false);
   const mo = e.target.closest('[data-modo]'); if(mo){ modoAgenda = mo.dataset.modo; return pintar(); }
   const me = e.target.closest('[data-mes]'); if(me){ const d = new Date(mes.y, mes.m + Number(me.dataset.mes), 1); mes = {y:d.getFullYear(), m:d.getMonth()}; return pintar(); }
   if(e.target.closest('[data-hoy]')){ const d = new Date(); mes = {y:d.getFullYear(), m:d.getMonth()}; diaSel = hoyStr(); return pintar(); }
@@ -294,13 +316,34 @@ document.addEventListener('dragover', e => { const c = e.target.closest?.('.col'
 document.addEventListener('drop', e => { const c = e.target.closest?.('.col'); if(!c || c.dataset.etapa==='nuevo') return; e.preventDefault(); c.classList.remove('sobre'); const id = Number(e.dataTransfer.getData('text/plain')); if(id) moverConsulta(id, c.dataset.etapa); });
 $('#chat-cerrar').addEventListener('click', () => $('#velo').hidden = true);
 $('#velo').addEventListener('click', e => { if(e.target.id==='velo') $('#velo').hidden = true; });
-document.addEventListener('keydown', e => { if(e.key==='Escape') $('#velo').hidden = true; });
+document.addEventListener('keydown', e => { if(e.key==='Escape'){ $('#velo').hidden = true; $('#venta').hidden = true; } });
 
 /* ---------- Vistas ---------- */
 const cliente = t => t?.consultas?.contactos ?? {};
 function filaTurno(t){
   const c = cliente(t), q = t.consultas ?? {};
   return `<div class="item"><div class="hora">${fmtHora(t.hora)}</div><div class="cuerpo"><b>${esc(c.nombre || c.identificador || 'Sin nombre')}</b><span class="sub">${q.cantidad ? esc(q.cantidad)+' × ' : ''}${esc(q.medida||'')} ${esc(q.modelo||'')} · ${esc(t.modalidad||'')}</span></div>${pill(t.estado)}</div>`;
+}
+const fmtUSD = n => 'USD ' + Number(n||0).toLocaleString('es-PY',{maximumFractionDigits:0});
+const fechaVenta = q => new Date(q.cerrada_en || q.creada);
+function bloqueIngresos(){
+  const ventas = D.consultas.filter(q => q.estado==='cerrada'), ahora = new Date();
+  const conMonto = ventas.filter(q => q.monto!=null), sinMonto = ventas.length - conMonto.length;
+  const total = conMonto.reduce((a,q) => a + Number(q.monto), 0);
+  const delMes = conMonto.filter(q => { const d = fechaVenta(q); return d.getFullYear()===ahora.getFullYear() && d.getMonth()===ahora.getMonth(); });
+  const mesTotal = delMes.reduce((a,q) => a + Number(q.monto), 0);
+  const ticket = conMonto.length ? total/conMonto.length : 0;
+  const meses = [5,4,3,2,1,0].map(i => { const d = new Date(ahora.getFullYear(), ahora.getMonth()-i, 1);
+    const suma = conMonto.filter(q => { const f = fechaVenta(q); return f.getFullYear()===d.getFullYear() && f.getMonth()===d.getMonth(); }).reduce((a,q) => a + Number(q.monto), 0);
+    return {et:MESES[d.getMonth()].slice(0,3), suma, act:i===0}; });
+  const max = Math.max(...meses.map(m => m.suma), 1);
+  return `<div class="panel" style="margin-bottom:20px"><h3>Ingresos ganados por el bot</h3><div class="ing">
+    <div class="cifras"><div class="grande"><div class="etq">Este mes</div><div class="v">${fmtUSD(mesTotal)}</div><div class="sub">${delMes.length} ${delMes.length===1?'venta cerrada':'ventas cerradas'}</div></div>
+    <div><div class="etq">Acumulado</div><div class="v">${fmtUSD(total)}</div></div>
+    <div><div class="etq">Ticket promedio</div><div class="v">${fmtUSD(ticket)}</div></div>
+    ${sinMonto ? `<div class="sub" style="grid-column:1/-1">${sinMonto} ${sinMonto===1?'venta sin monto cargado':'ventas sin monto cargado'}. Cargalo desde el Pipeline, en la columna Vendido.</div>` : ''}</div>
+    <div class="barras" role="img" aria-label="Ingresos de los últimos seis meses">${meses.map(m => `<div class="b${m.act?' act':''}"><em>${m.suma ? fmtUSD(m.suma).replace('USD ','') : ''}</em><i style="height:${Math.max(3, Math.round(m.suma/max*100))}px"></i><span>${m.et}</span></div>`).join('')}</div>
+  </div></div>`;
 }
 function vPanel(){
   const h = hoyStr(), i = D.ind;
@@ -314,6 +357,7 @@ function vPanel(){
     <div class="kpi"><div class="etq">Leads calificados</div><div class="n">${esc(i.leads_calificados)}</div><small>Con medida y intención de compra</small></div>
     <div class="kpi dest"><div class="etq">Ventas agendadas</div><div class="n">${esc(i.ventas_agendadas)}</div><small>${conv}% de los calificados</small></div>
   </div>
+  ${bloqueIngresos()}
   <div class="dos">
     <div class="panel"><h3>Agenda de hoy · ${fmtFecha(h)}</h3>${hoy.length ? hoy.map(filaTurno).join('') : '<div class="vacio">No hay turnos para hoy.</div>'}
       ${prox.length ? `<h3 style="margin-top:20px">Próximos turnos</h3>${prox.map(t => `<div class="item"><div class="hora" style="font-size:14px">${fmtFecha(t.fecha).slice(0,5)}</div>${filaTurno(t).replace('<div class="item">','').replace(/<\/div>$/,'')}</div>`).join('')}` : ''}</div>
@@ -369,6 +413,7 @@ function tarjetaConsulta(q){
     <div>${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
     ${t ? `<div class="sub">Visita: <b style="display:inline;color:var(--texto)">${fmtFecha(t.fecha)} ${fmtHora(t.hora)}</b> · ${esc(t.modalidad||'')}</div>` : ''}
     ${q.notas ? `<div class="sub">${esc(q.notas)}</div>` : ''}
+    ${q.estado==='cerrada' ? `<div>${q.monto!=null ? `<b style="display:inline;color:var(--amarillo)">${fmtUSD(q.monto)}</b>` : '<span class="sub">Sin monto</span>'} <button class="btn sec chico" type="button" data-monto="${q.id}">${q.monto!=null?'Editar':'Cargar monto'}</button></div>` : ''}
     <div class="sub">${fmtTs(q.creada)}</div>
     <div class="acc">${btnChat(c)}<select data-mover="${q.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo' && e.k!==q.estado).map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div></article>`;
 }
@@ -385,10 +430,35 @@ function vPipeline(){
 }
 async function moverConsulta(id, etapa){
   const q = D.consultas.find(x => x.id===id); if(!q || q.estado===etapa) return;
+  if(etapa==='cerrada') return pedirMonto(id, true);
   const antes = q.estado;
   try{ await actualizar('consultas', id, {estado:etapa}); q.estado = etapa; pintar(); }
   catch(err){ q.estado = antes; $('#msg').textContent = 'No se pudo mover: ' + (err.message||err); }
 }
+let ventaId = null, ventaMover = false;
+function montoSugerido(q){
+  if(q.monto!=null) return q.monto;
+  const t = turnoDe(q); if(!t) return '';
+  if(t.total!=null) return t.total;
+  return (t.precio_unitario!=null && q.cantidad) ? t.precio_unitario*q.cantidad : '';
+}
+function pedirMonto(id, mover){
+  const q = D.consultas.find(x => x.id===id); ventaId = id; ventaMover = mover;
+  $('#venta-sub').textContent = `${q.contactos?.nombre || q.contactos?.identificador || 'Cliente'} · ${q.cantidad ? q.cantidad+' × ' : ''}${q.medida||''} ${q.modelo||''}`;
+  $('#venta-monto').value = montoSugerido(q); $('#venta-error').textContent = '';
+  $('#venta').hidden = false; $('#venta-monto').focus();
+}
+$('#form-venta').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = D.consultas.find(x => x.id===ventaId), monto = Number($('#venta-monto').value);
+  if(!(monto>=0)){ $('#venta-error').textContent = 'Ingresá un monto válido.'; return; }
+  const campos = {monto, estado:'cerrada'}; if(ventaMover || !q.cerrada_en) campos.cerrada_en = new Date().toISOString();
+  $('#venta-ok').disabled = true;
+  try{ await actualizar('consultas', ventaId, campos); Object.assign(q, campos); $('#venta').hidden = true; pintar(); }
+  catch(err){ $('#venta-error').textContent = 'No se pudo guardar: ' + (err.message||err) + '. ¿Ejecutaste permisos_ingresos.sql?'; }
+  $('#venta-ok').disabled = false;
+});
+$('#venta-cancelar').addEventListener('click', () => $('#venta').hidden = true);
 function toggleAgenda(){
   return `<div class="seg" role="group" aria-label="Vista de la agenda"><button type="button" data-modo="calendario" aria-pressed="${modoAgenda==='calendario'}">Calendario</button><button type="button" data-modo="lista" aria-pressed="${modoAgenda==='lista'}">Lista</button></div>`;
 }

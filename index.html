@@ -106,6 +106,19 @@ a.wa:hover{text-decoration:underline}
 .caja input{width:100%;padding:11px 12px}
 .error{color:var(--rojo);font-size:14px;min-height:20px}
 .aviso{background:#ffd21f1c;border:1px solid var(--amarillo);color:var(--amarillo);border-radius:8px;padding:10px 14px;font-size:13px;margin-top:16px}
+/* Chat */
+.velo{position:fixed;inset:0;background:#031a12cc;display:flex;justify-content:flex-end;z-index:50}
+.velo[hidden]{display:none}
+.cajon{width:min(480px,100%);height:100%;background:var(--verde);border-left:1px solid var(--verde-3);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.cajon header{padding:16px 18px;border-bottom:1px solid var(--linea);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.cajon header b{display:block;font:900 17px var(--f-display)}
+#chat-cuerpo{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px;background:#00000022}
+.burbuja{max-width:85%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px}
+.burbuja.cli{align-self:flex-start;background:var(--verde-3);border-top-left-radius:3px}
+.burbuja.bot{align-self:flex-end;background:#f26a2124;border:1px solid var(--naranja);border-top-right-radius:3px}
+.burbuja small{display:block;font:700 11px var(--f-label);letter-spacing:.14em;text-transform:uppercase;color:var(--apagado);margin-bottom:3px}
+.burbuja.bot small{color:var(--naranja)}
+.btn.chico{padding:4px 10px;font-size:13px;white-space:nowrap}
 @media (max-width:560px){.marca b{font-size:28px}.kpi .n{font-size:38px}header .quien{margin-left:0;width:100%}}
 @media (prefers-reduced-motion:no-preference){.vista{animation:ent .25s ease}@keyframes ent{from{opacity:.0;transform:translateY(4px)}to{opacity:1;transform:none}}}
 </style>
@@ -144,6 +157,8 @@ a.wa:hover{text-decoration:underline}
   <main id="main"></main>
 </div>
 </div>
+
+<div class="velo" id="velo" hidden><div class="cajon" role="dialog" aria-modal="true" aria-labelledby="chat-titulo"><header><div><b id="chat-titulo"></b><span class="sub" id="chat-sub"></span></div><button class="btn sec" id="chat-cerrar" type="button">Cerrar</button></header><div id="chat-cuerpo"></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -205,6 +220,30 @@ async function actualizar(tabla, id, campos){
   if(error) throw error;
 }
 
+/* ---------- Chat ---------- */
+const btnChat = c => c?.identificador ? `<button class="btn sec chico" type="button" data-chat="${esc(c.identificador)}" data-nombre="${esc(c.nombre||'')}">Ver chat</button>` : '';
+const textoMsg = m => { const c = m?.content; const t = typeof c==='string' ? c : JSON.stringify(c ?? ''); return t.replace(/\s*FOTO:[^\n]*/gi,'').trim(); };
+async function traerChat(ident){
+  if(DEMO) return [{id:1,message:{type:'human',content:'Hola, precio de 265/60R18?'}},{id:2,message:{type:'ai',content:'¡Hola! Tenemos Westlake en 265/60R18. ¿Querés que te pase el presupuesto por 4?'}},{id:3,message:{type:'human',content:'Sí, y pasar mañana a colocarlas'}},{id:4,message:{type:'ai',content:'Perfecto, te agendé para mañana a las 09:00. ¡Te esperamos!'}}];
+  let r = await db.from('n8n_chat_histories').select('id,message').eq('session_id', ident).order('id');
+  if(!r.error && !r.data.length) r = await db.from('n8n_chat_histories').select('id,message').ilike('session_id','%'+ident+'%').order('id');
+  if(r.error) throw r.error;
+  return r.data;
+}
+async function abrirChat(ident, nombre){
+  $('#chat-titulo').textContent = nombre || ident; $('#chat-sub').textContent = 'WhatsApp ' + ident;
+  const cu = $('#chat-cuerpo'); cu.innerHTML = '<div class="vacio">Cargando conversación…</div>'; $('#velo').hidden = false;
+  try{
+    const l = (await traerChat(ident)).filter(x => textoMsg(x.message));
+    cu.innerHTML = l.length ? l.map(x => { const bot = x.message.type==='ai'; return `<div class="burbuja ${bot?'bot':'cli'}"><small>${bot?'Bot':esc(nombre||'Cliente')}</small>${esc(textoMsg(x.message))}</div>`; }).join('') : '<div class="vacio">No hay mensajes guardados para este contacto.</div>';
+    cu.scrollTop = cu.scrollHeight;
+  }catch(err){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(err.message||err)}. Ejecutá permisos_chat.sql en Supabase.</div>`; }
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-chat]'); if(b) abrirChat(b.dataset.chat, b.dataset.nombre); });
+$('#chat-cerrar').addEventListener('click', () => $('#velo').hidden = true);
+$('#velo').addEventListener('click', e => { if(e.target.id==='velo') $('#velo').hidden = true; });
+document.addEventListener('keydown', e => { if(e.key==='Escape') $('#velo').hidden = true; });
+
 /* ---------- Vistas ---------- */
 const cliente = t => t?.consultas?.contactos ?? {};
 function filaTurno(t){
@@ -239,10 +278,10 @@ function vAgenda(){
     <td>${esc(c.nombre||'Sin nombre')}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
     <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
     <td>${esc(t.modalidad||'—')}</td><td class="num">${fmtMoneda(t.total)}</td>
-    <td class="sub" style="max-width:220px">${esc(t.observaciones||'')}</td>
+    <td class="sub" style="max-width:220px">${esc(t.observaciones||'')}</td><td>${btnChat(c)}</td>
     <td><select data-t="turnos" data-id="${t.id}" data-c="estado" aria-label="Estado del turno">${ESTADOS_TURNO.map(e => `<option value="${e}" ${e===t.estado?'selected':''}>${e.replace('_',' ')}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
   return `<section class="vista"><div class="fila"><h2>Agenda</h2><div class="filtros"><select id="f-agenda" aria-label="Filtrar turnos"><option value="proximos">Próximos</option>${['todos',...ESTADOS_TURNO].map(e => `<option value="${e}">${e.replace('_',' ')}</option>`).join('')}</select></div></div>
-  <div class="tabla"><table><thead><tr><th>Fecha y hora</th><th>Cliente</th><th>Pedido</th><th>Modalidad</th><th>Total</th><th>Observaciones</th><th>Estado</th></tr></thead><tbody>${filas || '<tr><td colspan="7" class="vacio">No hay turnos con este filtro.</td></tr>'}</tbody></table></div></section>`;
+  <div class="tabla"><table><thead><tr><th>Fecha y hora</th><th>Cliente</th><th>Pedido</th><th>Modalidad</th><th>Total</th><th>Observaciones</th><th>Chat</th><th>Estado</th></tr></thead><tbody>${filas || '<tr><td colspan="8" class="vacio">No hay turnos con este filtro.</td></tr>'}</tbody></table></div></section>`;
 }
 function vConsultas(){
   let l = D.consultas;
@@ -252,19 +291,20 @@ function vConsultas(){
     <td class="num">${fmtTs(q.creada)}</td>
     <td>${esc(c.nombre||'Sin nombre')}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
     <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
-    <td>${q.lead_calificado ? pill('confirmado').replace('confirmado','calificado') : '<span class="sub">—</span>'}</td>
+    <td>${q.lead_calificado ? '<span class="pill p-confirmado">calificado</span>' : '<span class="sub">—</span>'}</td>
     <td><select data-t="consultas" data-id="${q.id}" data-c="estado" aria-label="Estado de la consulta">${ESTADOS_CONSULTA.map(e => `<option value="${e}" ${e===q.estado?'selected':''}>${e}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td>
+    <td>${btnChat(c)}</td>
     <td><input type="text" data-t="consultas" data-id="${q.id}" data-c="notas" value="${esc(q.notas||'')}" placeholder="Agregar nota" aria-label="Nota" style="width:100%;min-width:180px"><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
   return `<section class="vista"><div class="fila"><h2>Consultas</h2><div class="filtros"><select id="f-consulta" aria-label="Filtrar consultas"><option value="todas">Todas</option><option value="calificadas">Calificadas</option>${ESTADOS_CONSULTA.map(e => `<option value="${e}">${e}</option>`).join('')}</select></div></div>
-  <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Pedido</th><th>Lead</th><th>Estado</th><th>Notas</th></tr></thead><tbody>${filas || '<tr><td colspan="6" class="vacio">No hay consultas con este filtro.</td></tr>'}</tbody></table></div></section>`;
+  <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Pedido</th><th>Lead</th><th>Estado</th><th>Chat</th><th>Notas</th></tr></thead><tbody>${filas || '<tr><td colspan="7" class="vacio">No hay consultas con este filtro.</td></tr>'}</tbody></table></div></section>`;
 }
 function vContactos(){
   const b = busca.trim().toLowerCase();
   const l = D.contactos.filter(c => !b || (c.nombre||'').toLowerCase().includes(b) || (c.identificador||'').includes(b));
   const n = id => D.consultas.filter(q => q.contacto_id===id).length;
-  const filas = l.map(c => `<tr><td><b>${esc(c.nombre||'Sin nombre')}</b></td><td><a class="wa" href="${waLink(c.identificador)}" target="_blank" rel="noopener">${esc(c.identificador)}</a></td><td>${esc(c.pais||'—')}</td><td class="num">${n(c.id)}</td><td class="num">${fmtTs(c.primer_contacto)}</td><td class="num">${fmtTs(c.ultimo_contacto)}</td></tr>`).join('');
+  const filas = l.map(c => `<tr><td><b>${esc(c.nombre||'Sin nombre')}</b></td><td><a class="wa" href="${waLink(c.identificador)}" target="_blank" rel="noopener">${esc(c.identificador)}</a></td><td>${esc(c.pais||'—')}</td><td class="num">${n(c.id)}</td><td class="num">${fmtTs(c.primer_contacto)}</td><td class="num">${fmtTs(c.ultimo_contacto)}</td><td>${btnChat(c)}</td></tr>`).join('');
   return `<section class="vista"><div class="fila"><h2>Contactos <span class="sub">(${l.length})</span></h2><input type="search" id="busca" value="${esc(busca)}" placeholder="Buscar por nombre o número" aria-label="Buscar contacto" style="min-width:260px"></div>
-  <div class="tabla"><table><thead><tr><th>Nombre</th><th>WhatsApp</th><th>País</th><th>Consultas</th><th>Primer contacto</th><th>Último contacto</th></tr></thead><tbody>${filas || '<tr><td colspan="6" class="vacio">No hay contactos.</td></tr>'}</tbody></table></div></section>`;
+  <div class="tabla"><table><thead><tr><th>Nombre</th><th>WhatsApp</th><th>País</th><th>Consultas</th><th>Primer contacto</th><th>Último contacto</th><th>Chat</th></tr></thead><tbody>${filas || '<tr><td colspan="7" class="vacio">No hay contactos.</td></tr>'}</tbody></table></div></section>`;
 }
 const VISTAS = {panel:vPanel, agenda:vAgenda, consultas:vConsultas, contactos:vContactos};
 

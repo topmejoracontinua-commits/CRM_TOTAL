@@ -264,7 +264,8 @@ function demoData(){
     {id:1,canal:'whatsapp',identificador:'595981000111',nombre:'Marcelo Benítez',pais:'Paraguay',primer_contacto:new Date(Date.now()-86400000*3).toISOString(),ultimo_contacto:new Date().toISOString()},
     {id:2,canal:'whatsapp',identificador:'595971222333',nombre:'Lucía Ferreira',pais:'Paraguay',primer_contacto:new Date(Date.now()-86400000*2).toISOString(),ultimo_contacto:new Date(Date.now()-3600000*5).toISOString()},
     {id:3,canal:'whatsapp',identificador:'5493764555666',nombre:'Gustavo Rojas',pais:'Argentina',primer_contacto:new Date(Date.now()-86400000).toISOString(),ultimo_contacto:new Date(Date.now()-3600000*2).toISOString()},
-    {id:4,canal:'whatsapp',identificador:'595985777888',nombre:'Ana Giménez',pais:'Paraguay',primer_contacto:new Date().toISOString(),ultimo_contacto:new Date().toISOString()}];
+    {id:4,canal:'whatsapp',identificador:'595985777888',nombre:'Ana Giménez',pais:'Paraguay',primer_contacto:new Date().toISOString(),ultimo_contacto:new Date().toISOString()},
+    {id:5,canal:'whatsapp',identificador:'595982999000',nombre:'Pedro Acosta',pais:'Paraguay',primer_contacto:new Date().toISOString(),ultimo_contacto:new Date().toISOString()}];
   const consultas = [
     {id:1,contacto_id:1,medida:'265/60R18',modelo:'Westlake SU318',cantidad:4,lead_calificado:true,estado:'agendada',creada:new Date(Date.now()-3600000*6).toISOString(),notas:null,contactos:contactos[0]},
     {id:2,contacto_id:2,medida:'205/55R16',modelo:'Hankook Kinergy',cantidad:2,lead_calificado:true,estado:'agendada',creada:new Date(Date.now()-3600000*30).toISOString(),notas:'Prefiere colocación por la mañana',contactos:contactos[1]},
@@ -358,10 +359,10 @@ document.addEventListener('click', e => {
   if(e.target.closest('[data-hoy]')){ const d = new Date(); mes = {y:d.getFullYear(), m:d.getMonth()}; diaSel = hoyStr(); return pintar(); }
   const di = e.target.closest('[data-dia]'); if(di){ diaSel = di.dataset.dia; return pintar(); } const b = e.target.closest('[data-chat]'); if(b) abrirChat(b.dataset.chat, b.dataset.nombre); });
 /* Arrastrar tarjetas entre etapas */
-document.addEventListener('dragstart', e => { const t = e.target.closest?.('.tarjeta[data-id]'); if(!t) return; e.dataTransfer.setData('text/plain', t.dataset.id); e.dataTransfer.effectAllowed = 'move'; t.classList.add('arrastra'); });
+document.addEventListener('dragstart', e => { const t = e.target.closest?.('.tarjeta[data-id], .tarjeta[data-contacto]'); if(!t) return; e.dataTransfer.setData('text/plain', t.dataset.id ? 'q'+t.dataset.id : 'c'+t.dataset.contacto); e.dataTransfer.effectAllowed = 'move'; t.classList.add('arrastra'); });
 document.addEventListener('dragend', e => { e.target.classList?.remove('arrastra'); document.querySelectorAll('.col.sobre').forEach(c => c.classList.remove('sobre')); });
 document.addEventListener('dragover', e => { const c = e.target.closest?.('.col'); if(c && c.dataset.etapa!=='nuevo'){ e.preventDefault(); document.querySelectorAll('.col.sobre').forEach(x => x!==c && x.classList.remove('sobre')); c.classList.add('sobre'); } });
-document.addEventListener('drop', e => { const c = e.target.closest?.('.col'); if(!c || c.dataset.etapa==='nuevo') return; e.preventDefault(); c.classList.remove('sobre'); const id = Number(e.dataTransfer.getData('text/plain')); if(id) moverConsulta(id, c.dataset.etapa); });
+document.addEventListener('drop', e => { const c = e.target.closest?.('.col'); if(!c || c.dataset.etapa==='nuevo') return; e.preventDefault(); c.classList.remove('sobre'); const raw = e.dataTransfer.getData('text/plain'), id = Number(raw.slice(1)); if(!id) return; if(raw[0]==='c') moverContacto(id, c.dataset.etapa); else moverConsulta(id, c.dataset.etapa); });
 $('#chat-cerrar').addEventListener('click', () => $('#velo').hidden = true);
 $('#velo').addEventListener('click', e => { if(e.target.id==='velo') $('#velo').hidden = true; });
 document.addEventListener('keydown', e => { if(e.key==='Escape'){ $('#velo').hidden = true; $('#venta').hidden = true; } });
@@ -470,11 +471,24 @@ function vPipeline(){
   const nuevos = D.contactos.filter(c => !conConsulta.has(c.id));
   const cols = ETAPAS.map(e => {
     const items = e.k==='nuevo'
-      ? nuevos.map(c => `<article class="tarjeta" style="cursor:default"><b>${esc(c.nombre||'Sin nombre')}</b><span class="sub">${esc(c.identificador)} · escribió ${fmtTs(c.primer_contacto)}</span><div class="acc">${btnChat(c)}</div></article>`)
+      ? nuevos.map(c => `<article class="tarjeta" draggable="true" data-contacto="${c.id}"><b>${esc(c.nombre||'Sin nombre')}</b><span class="sub">${esc(c.identificador)} · escribió ${fmtTs(c.primer_contacto)}</span><div class="acc">${btnChat(c)}<select data-mover-c="${c.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo').map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div></article>`)
       : D.consultas.filter(q => q.estado===e.k).map(tarjetaConsulta);
     return `<div class="col" data-etapa="${e.k}" style="--c:${e.c}"><h3><span class="pt"></span>${e.t}<span class="ct">${items.length}</span></h3>${items.join('') || '<div class="vacio-col">Sin elementos</div>'}</div>`;
   }).join('');
   return `<section class="vista"><div class="fila"><h2>Pipeline</h2><span class="sub">Arrastrá una tarjeta a otra columna o usá "Mover a…" para cambiar la etapa.</span></div><div class="tablero">${cols}</div></section>`;
+}
+async function moverContacto(contactoId, etapa){
+  const c = D.contactos.find(x => x.id===contactoId); if(!c) return;
+  try{
+    let fila;
+    if(DEMO){ fila = {id:Math.max(0,...D.consultas.map(q => q.id))+1, contacto_id:c.id, medida:null, modelo:null, cantidad:null, lead_calificado:false, estado:'abierta', creada:new Date().toISOString(), notas:null, contactos:c}; }
+    else{
+      const {data, error} = await db.from('consultas').insert({contacto_id:c.id, estado:'abierta', lead_calificado:false}).select('*, contactos(nombre,identificador,pais)').single();
+      if(error) throw error; fila = data;
+    }
+    D.consultas.unshift(fila); pintar();
+    if(etapa!=='abierta') await moverConsulta(fila.id, etapa);
+  }catch(err){ $('#msg').textContent = 'No se pudo mover el contacto: ' + (err.message||err) + '. ¿Ejecutaste el SQL de permisos nuevo?'; }
 }
 async function moverConsulta(id, etapa){
   const q = D.consultas.find(x => x.id===id); if(!q || q.estado===etapa) return;
@@ -541,6 +555,7 @@ function pintar(){
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if(b){ vista = b.dataset.v; pintar(); } });
 $('#main').addEventListener('change', async e => {
   const el = e.target;
+  if(el.dataset.moverC){ const v = el.value; el.value = ''; if(v) moverContacto(Number(el.dataset.moverC), v); return; }
   if(el.dataset.mover){ const v = el.value; el.value = ''; if(v) moverConsulta(Number(el.dataset.mover), v); return; }
   if(el.id==='f-agenda'){ fAgenda = el.value; return pintar(); }
   if(el.id==='f-consulta'){ fConsulta = el.value; return pintar(); }

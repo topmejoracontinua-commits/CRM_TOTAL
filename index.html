@@ -158,6 +158,19 @@ a.wa:hover{text-decoration:underline}
 .modal{background:var(--verde);border:1px solid var(--verde-3);border-radius:12px;padding:22px;width:min(420px,100%);display:flex;flex-direction:column;gap:14px}
 .modal label{display:flex;flex-direction:column;gap:6px}
 .modal input{width:100%;padding:11px 12px;font-size:18px;font-weight:700}
+/* Resumen */
+.res{display:flex;flex-direction:column;gap:14px}
+.res .bloque{background:var(--verde-2);border:1px solid var(--linea);border-radius:10px;padding:14px 16px}
+.res .accion{border-color:var(--naranja);background:#f26a2114}
+.res h4{margin:0 0 8px;font:700 11.5px var(--f-label);letter-spacing:.07em;text-transform:uppercase;color:var(--amarillo)}
+.res .accion h4{color:var(--naranja)}
+.res dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}
+.res dt{color:var(--apagado);font-size:13px}
+.res dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.res .cita{font-style:italic}
+.res .botones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+a.btn{display:inline-block;text-decoration:none;text-align:center}
+.wa-btn{background:#25a05a}
 /* Chat */
 .velo{position:fixed;inset:0;background:#031a12cc;display:flex;justify-content:flex-end;z-index:50}
 .velo[hidden]{display:none}
@@ -211,7 +224,7 @@ a.wa:hover{text-decoration:underline}
 </div>
 </div>
 
-<div class="velo" id="velo" hidden><div class="cajon" role="dialog" aria-modal="true" aria-labelledby="chat-titulo"><header><div><b id="chat-titulo"></b><span class="sub" id="chat-sub"></span></div><button class="btn sec" id="chat-cerrar" type="button">Cerrar</button></header><div id="chat-cuerpo"></div></div></div>
+<div class="velo" id="velo" hidden><div class="cajon" role="dialog" aria-modal="true" aria-labelledby="chat-titulo"><header><div><b id="chat-titulo"></b><span class="sub" id="chat-sub"></span></div><button class="btn sec" id="chat-cerrar" type="button">Cerrar</button></header><div id="chat-barra" style="display:flex;gap:10px;padding:10px 18px;border-bottom:1px solid var(--linea);align-items:center;justify-content:space-between;flex-wrap:wrap"></div><div id="chat-cuerpo"></div></div></div>
 
 <div class="velo centro" id="venta" hidden><form class="modal" id="form-venta" role="dialog" aria-modal="true" aria-labelledby="venta-t"><h2 id="venta-t" style="font-size:20px">Registrar venta</h2><div class="sub" id="venta-sub"></div><label>Monto cobrado (USD)<input id="venta-monto" type="number" min="0" step="0.01" inputmode="decimal" required></label><div class="error" id="venta-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="venta-cancelar">Cancelar</button><button class="btn" type="submit" id="venta-ok">Guardar venta</button></div></form></div>
 
@@ -294,16 +307,51 @@ async function traerChat(ident){
   if(r.error) throw r.error;
   return r.data;
 }
+let chatCtx = null, chatTab = 'conv';
+const primerNombre = n => (n||'').trim().split(/\s+/)[0] || '';
 async function abrirChat(ident, nombre){
+  chatTab = 'conv'; chatCtx = {ident, nombre, msgs:[], error:null, cargando:true};
   $('#chat-titulo').textContent = nombre || ident; $('#chat-sub').textContent = 'WhatsApp ' + ident;
-  const cu = $('#chat-cuerpo'); cu.innerHTML = '<div class="vacio">Cargando conversación…</div>'; $('#velo').hidden = false;
-  try{
-    const l = (await traerChat(ident)).filter(x => { const t = textoMsg(x.message); return t && !esTecnico(t); });
-    cu.innerHTML = l.length ? l.map(x => { const bot = x.message.type==='ai'; return `<div class="burbuja ${bot?'bot':'cli'}"><small>${bot?'Bot':esc(nombre||'Cliente')}</small>${esc(textoMsg(x.message))}</div>`; }).join('') : '<div class="vacio">No hay mensajes guardados para este contacto.</div>';
-    cu.scrollTop = cu.scrollHeight;
-  }catch(err){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(err.message||err)}. Ejecutá permisos_chat.sql en Supabase.</div>`; }
+  $('#velo').hidden = false; renderChat();
+  try{ chatCtx.msgs = (await traerChat(ident)).filter(x => { const t = textoMsg(x.message); return t && !esTecnico(t); }); }
+  catch(err){ chatCtx.error = err.message || String(err); }
+  chatCtx.cargando = false; renderChat();
+}
+function renderChat(){
+  const c = chatCtx, cu = $('#chat-cuerpo'), num = String(c.ident).replace(/\D/g,'');
+  $('#chat-barra').innerHTML = `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>`;
+  if(c.cargando){ cu.innerHTML = '<div class="vacio">Cargando conversación…</div>'; return; }
+  if(chatTab==='res'){ cu.innerHTML = resumenHTML(c); cu.scrollTop = 0; return; }
+  if(c.error){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(c.error)}. Ejecutá permisos_chat.sql en Supabase.</div>`; return; }
+  cu.innerHTML = c.msgs.length ? c.msgs.map(x => { const bot = x.message.type==='ai'; return `<div class="burbuja ${bot?'bot':'cli'}"><small>${bot?'Bot':esc(c.nombre||'Cliente')}</small>${esc(textoMsg(x.message))}</div>`; }).join('') : '<div class="vacio">No hay mensajes guardados para este contacto.</div>';
+  cu.scrollTop = cu.scrollHeight;
+}
+function resumenHTML(c){
+  const ct = D.contactos.find(x => x.identificador===c.ident) || {};
+  const qs = D.consultas.filter(q => q.contacto_id===ct.id).sort((a,b) => new Date(b.creada)-new Date(a.creada));
+  const q = qs[0], t = q ? turnoDe(q) : null, nom = primerNombre(c.nombre || ct.nombre), h = hoyStr();
+  const humanos = c.msgs.filter(m => m.message.type==='human'), bots = c.msgs.filter(m => m.message.type==='ai');
+  const ultCli = humanos.length ? textoMsg(humanos[humanos.length-1].message) : '', ultBot = bots.length ? textoMsg(bots[bots.length-1].message) : '';
+  let accion, sugerido;
+  if(!q){ accion = 'Todavía no hay un pedido registrado. Escribile para saber qué medida necesita y ofrecele un presupuesto.'; sugerido = `Hola ${nom}, te escribo de Total Neumáticos. ¿Te puedo ayudar con la medida de cubiertas que buscás?`; }
+  else if(q.estado==='derivada'){ accion = 'El cliente pidió hablar con una persona. Contactalo cuanto antes por WhatsApp' + (q.notas ? ` (motivo: ${q.notas}).` : '.'); sugerido = `Hola ${nom}, soy del equipo de Total Neumáticos. Vi tu consulta${q.medida ? ' por la medida '+q.medida : ''} y te escribo para ayudarte.`; }
+  else if(q.estado==='agendada' && t){
+    if(t.fecha===h){ accion = `Viene hoy a las ${fmtHora(t.hora)} (${t.modalidad||'visita'}). Verificá que ${q.cantidad ? q.cantidad+' × ' : ''}${q.medida||'las cubiertas'} estén separadas.`; sugerido = `Hola ${nom}, te esperamos hoy a las ${fmtHora(t.hora)} en Total Neumáticos. Ya tenemos tus cubiertas separadas.`; }
+    else if(t.fecha>h){ accion = `Visita el ${fmtFecha(t.fecha)} a las ${fmtHora(t.hora)}. Confirmale el turno el día anterior y dejá las cubiertas separadas.`; sugerido = `Hola ${nom}, te escribo para confirmar tu visita del ${fmtFecha(t.fecha)} a las ${fmtHora(t.hora)} en Total Neumáticos. ¿Seguimos con ese horario?`; }
+    else { accion = `La visita del ${fmtFecha(t.fecha)} ya pasó y sigue sin cerrarse. Marcá si vino o no, y si compró pasalo a Vendido con el monto.`; sugerido = `Hola ${nom}, ¿pudiste pasar por Total Neumáticos? Quedamos a tu disposición para lo que necesites.`; }
+  }
+  else if(q.estado==='abierta' || q.estado==='agendada'){ accion = 'Consultó pero no agendó. Hacé seguimiento: ofrecele presupuesto final y un turno para la colocación.'; sugerido = `Hola ${nom}, soy de Total Neumáticos. ¿Pudiste ver la propuesta${q.medida ? ' de las '+q.medida : ''}? Si querés te agendo un turno para la colocación.`; }
+  else if(q.estado==='cerrada'){ accion = 'Venta cerrada' + (q.monto!=null ? ` por ${fmtUSD(q.monto)}.` : '. Falta cargar el monto en el Pipeline.') + ' Podés agradecerle y pedirle una reseña.'; sugerido = `Hola ${nom}, gracias por elegir Total Neumáticos. Si te gustó la atención, nos ayuda mucho una reseña en Google.`; }
+  else { accion = 'La consulta está marcada como perdida. Si el cliente vuelve a escribir, retomala desde el Pipeline.'; sugerido = `Hola ${nom}, soy de Total Neumáticos. Quedamos a tu disposición si más adelante necesitás cubiertas.`; }
+  const num = String(c.ident).replace(/\D/g,'');
+  return `<div class="res">
+   <div class="bloque accion"><h4>Qué hacer ahora</h4><div>${esc(accion)}</div><div class="botones"><a class="btn wa-btn chico" href="https://wa.me/${num}?text=${encodeURIComponent(sugerido)}" target="_blank" rel="noopener">WhatsApp con mensaje sugerido</a></div><div class="sub" style="margin-top:8px">“${esc(sugerido)}”</div></div>
+   <div class="bloque"><h4>Cliente</h4><dl><dt>Nombre</dt><dd>${esc(c.nombre||ct.nombre||'Sin nombre')}</dd><dt>WhatsApp</dt><dd>${esc(c.ident)}</dd><dt>País</dt><dd>${esc(ct.pais||'—')}</dd><dt>Primer contacto</dt><dd>${ct.primer_contacto ? fmtTs(ct.primer_contacto) : '—'}</dd><dt>Último contacto</dt><dd>${ct.ultimo_contacto ? fmtTs(ct.ultimo_contacto) : '—'}</dd><dt>Mensajes</dt><dd>${humanos.length} del cliente, ${bots.length} del bot</dd></dl></div>
+   ${q ? `<div class="bloque"><h4>Pedido</h4><dl><dt>Medida</dt><dd>${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '—'}</dd><dt>Modelo</dt><dd>${esc(q.modelo||'—')}</dd><dt>Cantidad</dt><dd>${esc(q.cantidad ?? '—')}</dd><dt>Etapa</dt><dd>${pill(q.estado)}</dd>${t ? `<dt>Visita</dt><dd>${fmtFecha(t.fecha)} ${fmtHora(t.hora)} · ${esc(t.modalidad||'')} · ${pill(t.estado)}</dd>${t.observaciones ? `<dt>Observaciones</dt><dd>${esc(t.observaciones)}</dd>` : ''}` : ''}${q.monto!=null ? `<dt>Monto</dt><dd>${fmtUSD(q.monto)}</dd>` : ''}${q.notas ? `<dt>Notas</dt><dd>${esc(q.notas)}</dd>` : ''}${qs.length>1 ? `<dt>Otras consultas</dt><dd>${qs.length-1}</dd>` : ''}</dl></div>` : ''}
+   <div class="bloque"><h4>Últimos mensajes</h4><dl><dt>Cliente</dt><dd class="cita">${ultCli ? esc(ultCli) : '—'}</dd><dt>Bot</dt><dd class="cita">${ultBot ? esc(ultBot.length>260 ? ultBot.slice(0,260)+'…' : ultBot) : '—'}</dd></dl></div></div>`;
 }
 document.addEventListener('click', e => {
+  const ctb = e.target.closest('[data-ctab]'); if(ctb){ chatTab = ctb.dataset.ctab; return renderChat(); }
   const mt = e.target.closest('[data-monto]'); if(mt) return pedirMonto(Number(mt.dataset.monto), false);
   const mo = e.target.closest('[data-modo]'); if(mo){ modoAgenda = mo.dataset.modo; return pintar(); }
   const me = e.target.closest('[data-mes]'); if(me){ const d = new Date(mes.y, mes.m + Number(me.dataset.mes), 1); mes = {y:d.getFullYear(), m:d.getMonth()}; return pintar(); }

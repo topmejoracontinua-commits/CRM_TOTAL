@@ -223,6 +223,7 @@ async function actualizar(tabla, id, campos){
 /* ---------- Chat ---------- */
 const btnChat = c => c?.identificador ? `<button class="btn sec chico" type="button" data-chat="${esc(c.identificador)}" data-nombre="${esc(c.nombre||'')}">Ver chat</button>` : '';
 const textoMsg = m => { const c = m?.content; const t = typeof c==='string' ? c : JSON.stringify(c ?? ''); return t.replace(/\s*FOTO:[^\n]*/gi,'').trim(); };
+const esTecnico = t => { if(/^\[\s*\]$/.test(t)) return true; if(/^[\[{]/.test(t)){ try{ JSON.parse(t); return true; }catch(e){} } return false; };
 async function traerChat(ident){
   if(DEMO) return [{id:1,message:{type:'human',content:'Hola, precio de 265/60R18?'}},{id:2,message:{type:'ai',content:'¡Hola! Tenemos Westlake en 265/60R18. ¿Querés que te pase el presupuesto por 4?'}},{id:3,message:{type:'human',content:'Sí, y pasar mañana a colocarlas'}},{id:4,message:{type:'ai',content:'Perfecto, te agendé para mañana a las 09:00. ¡Te esperamos!'}}];
   let r = await db.from('n8n_chat_histories').select('id,message').eq('session_id', ident).order('id');
@@ -234,7 +235,7 @@ async function abrirChat(ident, nombre){
   $('#chat-titulo').textContent = nombre || ident; $('#chat-sub').textContent = 'WhatsApp ' + ident;
   const cu = $('#chat-cuerpo'); cu.innerHTML = '<div class="vacio">Cargando conversación…</div>'; $('#velo').hidden = false;
   try{
-    const l = (await traerChat(ident)).filter(x => textoMsg(x.message));
+    const l = (await traerChat(ident)).filter(x => { const t = textoMsg(x.message); return t && !esTecnico(t); });
     cu.innerHTML = l.length ? l.map(x => { const bot = x.message.type==='ai'; return `<div class="burbuja ${bot?'bot':'cli'}"><small>${bot?'Bot':esc(nombre||'Cliente')}</small>${esc(textoMsg(x.message))}</div>`; }).join('') : '<div class="vacio">No hay mensajes guardados para este contacto.</div>';
     cu.scrollTop = cu.scrollHeight;
   }catch(err){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(err.message||err)}. Ejecutá permisos_chat.sql en Supabase.</div>`; }

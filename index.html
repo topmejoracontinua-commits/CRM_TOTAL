@@ -348,7 +348,7 @@ function demoData(){
   const perfiles = [{user_id:'u1',nombre:'Fabrizio',rol:'supervisor'},{user_id:'u2',nombre:'María',rol:'operador'},{user_id:'u3',nombre:'Juan',rol:'operador'}];
   consultas[0].asignado_a='u2'; consultas[2].asignado_a='u3'; consultas[3].asignado_a='u2';
   const tareas = [
-    {id:1,titulo:'Llamar a Gustavo Rojas por la 255/70R16',detalle:null,asignado_a:'u3',creada_por:'u1',vence:d(0),estado:'pendiente',creada:new Date().toISOString(),hecha_en:null},
+    {id:1,titulo:'Llamar a Gustavo Rojas por la 255/70R16',detalle:null,contacto_id:3,hora:'15:00:00',asignado_a:'u3',creada_por:'u1',vence:d(0),estado:'pendiente',creada:new Date().toISOString(),hecha_en:null},
     {id:2,titulo:'Confirmar la visita de mañana con Lucía Ferreira',detalle:null,asignado_a:'u2',creada_por:'u1',vence:d(1),estado:'pendiente',creada:new Date().toISOString(),hecha_en:null},
     {id:3,titulo:'Avisar a quienes pidieron 255/55R19',detalle:null,asignado_a:'u2',creada_por:'u1',vence:d(-1),estado:'pendiente',creada:new Date().toISOString(),hecha_en:null},
     {id:4,titulo:'Cargar el monto de la venta de Lucía',detalle:null,asignado_a:'u3',creada_por:'u1',vence:null,estado:'hecha',creada:new Date().toISOString(),hecha_en:new Date().toISOString()}];
@@ -389,8 +389,8 @@ async function traerChat(ident){
 }
 let chatCtx = null, chatTab = 'conv';
 const primerNombre = n => (n||'').trim().split(/\s+/)[0] || '';
-async function abrirChat(ident, nombre){
-  chatTab = 'conv'; chatCtx = {ident, nombre, msgs:[], error:null, cargando:true};
+async function abrirChat(ident, nombre, tab='conv'){
+  chatTab = tab; chatCtx = {ident, nombre, msgs:[], error:null, cargando:true};
   $('#chat-titulo').textContent = nombre || ident; $('#chat-sub').textContent = 'WhatsApp ' + ident;
   $('#velo').hidden = false; renderChat(); renderPie();
   try{ chatCtx.msgs = (await traerChat(ident)).filter(x => { const t = textoMsg(x.message); return t && !esTecnico(t); }); }
@@ -403,7 +403,7 @@ function burbuja(x, c){
 }
 function renderChat(){
   const c = chatCtx, cu = $('#chat-cuerpo'), num = String(c.ident).replace(/\D/g,'');
-  $('#chat-barra').innerHTML = `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>${(() => { const ct = contactoDe(c.ident); return ct ? `<div class="etqs" style="flex-basis:100%">${chipsEtq(ct)}<button class="btn sec chico" type="button" data-etq="${ct.id}">Etiquetas</button></div>` : ''; })()}`;
+  $('#chat-barra').innerHTML = `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>${(() => { const ct = contactoDe(c.ident); return ct ? `<div class="etqs" style="flex-basis:100%">${chipsEtq(ct)}<button class="btn sec chico" type="button" data-etq="${ct.id}">Etiquetas</button>${esSup() && D.perfiles.length ? `<button class="btn sec chico" type="button" data-nueva-tarea="${ct.id}">+ Tarea</button>` : ''}</div>` : ''; })()}`;
   if(c.cargando){ cu.innerHTML = '<div class="vacio">Cargando conversación…</div>'; return; }
   if(chatTab==='res'){ cu.innerHTML = resumenHTML(c); cu.scrollTop = 0; return; }
   if(c.error){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(c.error)}. Ejecutá permisos_chat.sql en Supabase.</div>`; return; }
@@ -432,6 +432,7 @@ function resumenHTML(c){
    <div class="bloque accion"><h4>Qué hacer ahora</h4><div>${esc(accion)}</div><div class="botones"><a class="btn wa-btn chico" href="https://wa.me/${num}?text=${encodeURIComponent(sugerido)}" target="_blank" rel="noopener">WhatsApp con mensaje sugerido</a></div><div class="sub" style="margin-top:8px">“${esc(sugerido)}”</div></div>
    <div class="bloque"><h4>Cliente</h4><dl><dt>Nombre</dt><dd>${esc(c.nombre||ct.nombre||'Sin nombre')}</dd><dt>WhatsApp</dt><dd>${esc(c.ident)}</dd><dt>País</dt><dd>${esc(ct.pais||'—')}</dd><dt>Primer contacto</dt><dd>${ct.primer_contacto ? fmtTs(ct.primer_contacto) : '—'}</dd><dt>Último contacto</dt><dd>${ct.ultimo_contacto ? fmtTs(ct.ultimo_contacto) : '—'}</dd><dt>Mensajes</dt><dd>${humanos.length} del cliente, ${bots.length} del bot</dd></dl></div>
    ${q ? `<div class="bloque"><h4>Pedido</h4><dl><dt>Medida</dt><dd>${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '—'}</dd><dt>Modelo</dt><dd>${esc(q.modelo||'—')}</dd><dt>Cantidad</dt><dd>${esc(q.cantidad ?? '—')}</dd><dt>Etapa</dt><dd>${pill(q.estado)}</dd>${t ? `<dt>Visita</dt><dd>${fmtFecha(t.fecha)} ${fmtHora(t.hora)} · ${esc(t.modalidad||'')} · ${pill(t.estado)}</dd>${t.observaciones ? `<dt>Observaciones</dt><dd>${esc(t.observaciones)}</dd>` : ''}` : ''}${q.monto!=null ? `<dt>Monto</dt><dd>${fmtUSD(q.monto)}</dd>` : ''}${q.notas ? `<dt>Notas</dt><dd>${esc(q.notas)}</dd>` : ''}${qs.length>1 ? `<dt>Otras consultas</dt><dd>${qs.length-1}</dd>` : ''}</dl></div>` : ''}
+   ${(() => { const ts = D.tareas.filter(t => ct.id!=null && t.contacto_id===ct.id && t.estado==='pendiente'); return ts.length ? `<div class="bloque"><h4>Tareas con este cliente</h4>${ts.map(t => `<div>${esc(t.titulo)} <span class="sub">· ${esc(nomOp(t.asignado_a))} · ${esc(vencPlano(t))}${t.hora ? ' '+t.hora.slice(0,5) : ''}</span></div>`).join('')}</div>` : ''; })()}
    <div class="bloque"><h4>Últimos mensajes</h4><dl><dt>Cliente</dt><dd class="cita">${ultCli ? esc(ultCli) : '—'}</dd><dt>Bot</dt><dd class="cita">${ultBot ? esc(ultBot.length>260 ? ultBot.slice(0,260)+'…' : ultBot) : '—'}</dd></dl></div></div>`;
 }
 document.addEventListener('click', e => {
@@ -529,7 +530,7 @@ function bloqueIngresos(){
 }
 /* ---------- Etiquetas de contactos ---------- */
 const ETQ_SUG = ['Mayorista','Flota','Taller','Cliente frecuente'];
-let fEtq = 'todas', etqId = null;
+let fEtq = 'todas', etqId = null, tareaPre = null;
 const ctDeId = id => D.contactos.find(x => x.id===id);
 const etqsDe = ct => Array.isArray(ct?.etiquetas) ? ct.etiquetas : [];
 const esMay = t => /mayorista/i.test(t);
@@ -576,10 +577,17 @@ function botonesTarea(t){
   const puede = esSup() || t.asignado_a===UID;
   return `${puede ? (t.estado==='pendiente' ? `<button class="btn chico" type="button" data-tarea-hecha="${t.id}">Marcar hecha</button>` : `<button class="btn sec chico" type="button" data-tarea-reabrir="${t.id}">Reabrir</button>`) : ''}${esSup() ? ` <button class="btn sec chico" type="button" data-tarea-del="${t.id}" aria-label="Eliminar tarea">Eliminar</button>` : ''}`;
 }
+const etqContacto = c => c ? `${c.nombre || 'Sin nombre'} · ${c.identificador}` : '';
+const horaTxt = t => t.hora ? t.hora.slice(0,5) : '';
+function abrirFicha(contactoId){
+  const ct = ctDeId(contactoId); if(!ct){ $('#msg').textContent = 'No se encontró el contacto de esta tarea.'; return; }
+  abrirNotif(false); abrirChat(ct.identificador, ct.nombre, 'res');
+}
+const linkContacto = t => { const c = t.contacto_id ? ctDeId(t.contacto_id) : null; return c ? `<a href="#" class="wa" data-ficha="${c.id}">${esc(c.nombre || c.identificador)}</a>` : ''; };
 function bloqueMisTareas(){
   const l = misPendientes().sort((a,b) => (a.vence||'9999').localeCompare(b.vence||'9999')).slice(0,5);
   if(!l.length) return '';
-  return `<div class="panel" style="margin-bottom:20px"><h3>Mis tareas pendientes · ${misPendientes().length}</h3>${l.map(t => `<div class="item"><div class="cuerpo"><b>${esc(t.titulo)}</b><span class="sub">${vencTxt(t)}${t.detalle ? ' · '+esc(t.detalle) : ''}</span></div>${botonesTarea(t)}</div>`).join('')}</div>`;
+  return `<div class="panel" style="margin-bottom:20px"><h3>Mis tareas pendientes · ${misPendientes().length}</h3>${l.map(t => `<div class="item"><div class="cuerpo"><b>${t.contacto_id ? `<a href="#" class="wa" data-ficha="${t.contacto_id}">${esc(t.titulo)}</a>` : esc(t.titulo)}</b><span class="sub">${vencTxt(t)}${horaTxt(t) ? ' · '+horaTxt(t) : ''}${t.contacto_id ? ' · '+linkContacto(t) : ''}${t.detalle ? ' · '+esc(t.detalle) : ''}</span></div>${botonesTarea(t)}</div>`).join('')}</div>`;
 }
 function vTareas(){
   if(fTareas===null) fTareas = esSup() ? 'pendientes' : 'mias';
@@ -592,27 +600,32 @@ function vTareas(){
   l.sort((a,b) => (a.estado===b.estado) ? (a.estado==='pendiente' ? (a.vence||'9999').localeCompare(b.vence||'9999') : new Date(b.hecha_en||0)-new Date(a.hecha_en||0)) : (a.estado==='pendiente' ? -1 : 1));
   const activos = ['abierta','derivada','agendada'];
   const carga = esSup() ? `<div class="kpis" style="margin-bottom:20px">${D.perfiles.map(p => `<div class="kpi"><div class="etq">${esc(p.nombre)}${p.rol==='supervisor' ? ' · supervisor' : ''}</div><div class="n">${D.tareas.filter(t => t.asignado_a===p.user_id && t.estado==='pendiente').length}</div><small>tareas pendientes · ${D.consultas.filter(q => q.asignado_a===p.user_id && activos.includes(q.estado)).length} leads activos</small></div>`).join('')}</div>` : '';
-  const form = esSup() ? `<form class="formtarea panel" id="form-tarea"><label class="ancho">Nueva tarea<input type="text" id="tarea-titulo" required maxlength="160" placeholder="Ej: Llamar a Juan por la 265/60R18" style="width:100%"></label>
+  const form = esSup() ? `<form class="formtarea panel" id="form-tarea" data-pre="${tareaPre || ''}"><label class="ancho">Nueva tarea<input type="text" id="tarea-titulo" required maxlength="160" placeholder="Ej: Llamar a Juan por la 265/60R18" style="width:100%"></label>
     <label>Asignar a<select id="tarea-asig" required>${D.perfiles.map(p => `<option value="${esc(p.user_id)}">${esc(p.nombre)}</option>`).join('')}</select></label>
+    <label class="ancho">Contacto (opcional)<input type="text" id="tarea-contacto" list="dl-contactos" autocomplete="off" placeholder="Escribí el nombre o el número y elegilo de la lista" style="width:100%"><datalist id="dl-contactos">${D.contactos.map(c => `<option value="${esc(etqContacto(c))}"></option>`).join('')}</datalist></label>
     <label>Fecha límite<input type="date" id="tarea-vence"></label>
+    <label>Hora (opcional)<input type="time" id="tarea-hora"></label>
     <label class="ancho">Detalle (opcional)<input type="text" id="tarea-detalle" maxlength="400" style="width:100%"></label>
     <div><button class="btn" type="submit" id="tarea-ok">Crear tarea</button></div><div class="error ancho" id="tarea-error" role="alert"></div></form>` : '';
-  const filas = l.map(t => `<tr><td><b>${esc(t.titulo)}</b>${t.detalle ? `<div class="sub">${esc(t.detalle)}</div>` : ''}</td>
+  const filas = l.map(t => `<tr><td><b>${t.contacto_id ? `<a href="#" class="wa" data-ficha="${t.contacto_id}">${esc(t.titulo)}</a>` : esc(t.titulo)}</b>${t.contacto_id ? `<div class="sub">Cliente: ${linkContacto(t)} · <a href="#" class="wa" data-ficha="${t.contacto_id}">abrir ficha</a></div>` : ''}${t.detalle ? `<div class="sub">${esc(t.detalle)}</div>` : ''}</td>
     <td>${esSup() ? `<select data-tarea-asig="${t.id}" aria-label="Reasignar tarea"><option value="">Sin asignar</option>${D.perfiles.map(p => `<option value="${esc(p.user_id)}" ${p.user_id===t.asignado_a?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select>` : esc(nomOp(t.asignado_a))}</td>
-    <td class="num">${vencTxt(t)}</td><td>${t.estado==='hecha' ? '<span class="pill p-confirmado">hecha</span>' : '<span class="pill p-abierta">pendiente</span>'}</td>
+    <td class="num">${vencTxt(t)}${horaTxt(t) ? `<div class="sub">${horaTxt(t)} hs</div>` : ''}</td><td>${t.estado==='hecha' ? '<span class="pill p-confirmado">hecha</span>' : '<span class="pill p-abierta">pendiente</span>'}</td>
     <td style="white-space:nowrap">${botonesTarea(t)}</td></tr>`).join('');
   return `<section class="vista"><div class="fila"><h2>Tareas</h2><div class="filtros"><select id="f-tareas" aria-label="Filtrar tareas"><option value="mias">Mis pendientes</option><option value="pendientes">Todas las pendientes</option><option value="hechas">Hechas</option><option value="todas">Todas</option></select>${esSup() ? `<select id="f-tarea-op" aria-label="Filtrar por operador"><option value="todos">Todos los operadores</option><option value="sin">Sin asignar</option>${D.perfiles.map(p => `<option value="${esc(p.user_id)}">${esc(p.nombre)}</option>`).join('')}</select>` : ''}</div></div>
   ${carga}${form}
   <div class="tabla"><table><thead><tr><th>Tarea</th><th>Asignada a</th><th>Vence</th><th>Estado</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="5" class="vacio">No hay tareas con este filtro.</td></tr>'}</tbody></table></div></section>`;
 }
 async function crearTarea(){
-  const titulo = $('#tarea-titulo').value.trim(), asig = $('#tarea-asig').value, vence = $('#tarea-vence').value || null, detalle = $('#tarea-detalle').value.trim() || null;
-  if(!titulo) return; $('#tarea-ok').disabled = true; $('#tarea-error').textContent = '';
+  const titulo = $('#tarea-titulo').value.trim(), asig = $('#tarea-asig').value, vence = $('#tarea-vence').value || null, detalle = $('#tarea-detalle').value.trim() || null, hora = $('#tarea-hora').value || null;
+  const txtC = $('#tarea-contacto').value.trim(); let contacto_id = null;
+  if(!titulo) return; $('#tarea-error').textContent = '';
+  if(txtC){ const c = D.contactos.find(x => etqContacto(x).toLowerCase()===txtC.toLowerCase()); if(!c){ $('#tarea-error').textContent = 'Elegí el contacto de la lista desplegable (o dejá el campo vacío).'; return; } contacto_id = c.id; }
+  $('#tarea-ok').disabled = true; tareaPre = null;
   try{
-    let fila = {id:Math.max(0,...D.tareas.map(t => t.id))+1, titulo, detalle, asignado_a:asig, creada_por:UID, vence, estado:'pendiente', creada:new Date().toISOString(), hecha_en:null};
-    if(!DEMO){ const {data, error} = await db.from('tareas').insert({titulo, detalle, asignado_a:asig, vence}).select('*').single(); if(error) throw error; fila = data; }
+    let fila = {id:Math.max(0,...D.tareas.map(t => t.id))+1, titulo, detalle, asignado_a:asig, creada_por:UID, vence, hora, contacto_id, estado:'pendiente', creada:new Date().toISOString(), hecha_en:null};
+    if(!DEMO){ const nuevo = {titulo, detalle, asignado_a:asig, vence}; if(hora) nuevo.hora = hora; if(contacto_id) nuevo.contacto_id = contacto_id; const {data, error} = await db.from('tareas').insert(nuevo).select('*').single(); if(error) throw error; fila = data; }
     D.tareas.unshift(fila); pintar();
-  }catch(err){ $('#tarea-error').textContent = 'No se pudo crear: ' + (err.message||err) + '. ¿Ejecutaste permisos_roles.sql y sos supervisor?'; $('#tarea-ok').disabled = false; }
+  }catch(err){ $('#tarea-error').textContent = 'No se pudo crear: ' + (err.message||err) + '. ¿Ejecutaste permisos_roles.sql y permisos_tareas_contacto.sql, y sos supervisor?'; $('#tarea-ok').disabled = false; }
 }
 async function cambiarTarea(id, campos){
   const t = D.tareas.find(x => x.id===id); if(!t) return;
@@ -626,6 +639,10 @@ async function borrarTarea(id){
   catch(err){ $('#msg').textContent = 'No se pudo eliminar: ' + (err.message||err); }
   pintar();
 }
+document.addEventListener('click', e => {
+  const f = e.target.closest('[data-ficha]'); if(f){ e.preventDefault(); return abrirFicha(Number(f.dataset.ficha)); }
+  const nt = e.target.closest('[data-nueva-tarea]'); if(nt){ tareaPre = nt.dataset.nuevaTarea; $('#velo').hidden = true; vista = 'tareas'; pintar(); const c = ctDeId(Number(tareaPre)); const i = $('#tarea-contacto'); if(i && c){ i.value = etqContacto(c); $('#tarea-titulo').focus(); } }
+});
 document.addEventListener('submit', e => { if(e.target.id==='form-tarea'){ e.preventDefault(); crearTarea(); } });
 document.addEventListener('click', e => {
   const h = e.target.closest('[data-tarea-hecha]'); if(h) return cambiarTarea(Number(h.dataset.tareaHecha), {estado:'hecha', hecha_en:new Date().toISOString()});
@@ -873,7 +890,7 @@ function notificaciones(){
   const l = [], h = hoyStr(), visto = leerVisto(), conRoles = D.perfiles.length > 0;
   const activos = ['abierta','derivada','agendada'];
   misPendientes().sort((a,b) => (a.vence||'9999').localeCompare(b.vence||'9999')).forEach(t => l.push({
-    n:1, nivel: t.vence && t.vence<h ? 'alta' : t.vence===h ? 'media' : 'baja', titulo:t.titulo, sub:vencPlano(t), nueva: !!visto && (t.creada||'') > visto, ir:'tareas'}));
+    n:1, nivel: t.vence && t.vence<h ? 'alta' : t.vence===h ? 'media' : 'baja', titulo:t.titulo, sub:vencPlano(t) + (t.hora ? ' · ' + t.hora.slice(0,5) : '') + (t.contacto_id && ctDeId(t.contacto_id) ? ' · ' + (ctDeId(t.contacto_id).nombre || '') : ''), nueva: !!visto && (t.creada||'') > visto, ir:'tareas', ficha:t.contacto_id||null}));
   const mio = q => !conRoles || q.asignado_a===UID;
   const der = D.consultas.filter(q => q.estado==='derivada' && mio(q)).length;
   if(der) l.push({n:der, nivel:'alta', titulo:`${der} ${der===1?'lead derivado':'leads derivados'} a asesor`, sub:'Esperan que los atiendas', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
@@ -918,6 +935,7 @@ document.addEventListener('click', e => {
   const it = e.target.closest('[data-notif]');
   if(it){
     const x = window.__notifs[Number(it.dataset.notif)]; if(!x) return;
+    if(x.ficha) return abrirFicha(x.ficha);
     vista = x.ir; if(x.asig) fAsig = x.asig; if(x.ir==='tareas') fTareas = x.todas ? 'pendientes' : 'mias';
     abrirNotif(false); return pintar();
   }

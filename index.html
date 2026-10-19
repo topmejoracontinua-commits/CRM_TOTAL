@@ -171,6 +171,13 @@ a.wa:hover{text-decoration:underline}
 .res .botones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 a.btn{display:inline-block;text-decoration:none;text-align:center}
 .wa-btn{background:#25a05a}
+/* Operador */
+.pie{border-top:1px solid var(--linea);padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;background:var(--verde)}
+.estado-bot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.compositor{display:flex;gap:10px;align-items:flex-end}
+.compositor textarea{flex:1;min-width:0;resize:none;background:var(--verde-2);border:1px solid var(--verde-3);border-radius:8px;padding:10px 12px;color:var(--texto);font:inherit}
+.burbuja.ase{align-self:flex-end;background:#ffd21f1f;border:1px solid var(--amarillo);border-top-right-radius:3px}
+.burbuja.ase small{color:var(--amarillo)}
 /* Chat */
 .velo{position:fixed;inset:0;background:#031a12cc;display:flex;justify-content:flex-end;z-index:50}
 .velo[hidden]{display:none}
@@ -224,7 +231,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 </div>
 </div>
 
-<div class="velo" id="velo" hidden><div class="cajon" role="dialog" aria-modal="true" aria-labelledby="chat-titulo"><header><div><b id="chat-titulo"></b><span class="sub" id="chat-sub"></span></div><button class="btn sec" id="chat-cerrar" type="button">Cerrar</button></header><div id="chat-barra" style="display:flex;gap:10px;padding:10px 18px;border-bottom:1px solid var(--linea);align-items:center;justify-content:space-between;flex-wrap:wrap"></div><div id="chat-cuerpo"></div></div></div>
+<div class="velo" id="velo" hidden><div class="cajon" role="dialog" aria-modal="true" aria-labelledby="chat-titulo"><header><div><b id="chat-titulo"></b><span class="sub" id="chat-sub"></span></div><button class="btn sec" id="chat-cerrar" type="button">Cerrar</button></header><div id="chat-barra" style="display:flex;gap:10px;padding:10px 18px;border-bottom:1px solid var(--linea);align-items:center;justify-content:space-between;flex-wrap:wrap"></div><div id="chat-cuerpo"></div><div id="chat-pie"></div></div></div>
 
 <div class="velo centro" id="venta" hidden><form class="modal" id="form-venta" role="dialog" aria-modal="true" aria-labelledby="venta-t"><h2 id="venta-t" style="font-size:20px">Registrar venta</h2><div class="sub" id="venta-sub"></div><label>Monto cobrado (USD)<input id="venta-monto" type="number" min="0" step="0.01" inputmode="decimal" required></label><div class="error" id="venta-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="venta-cancelar">Cancelar</button><button class="btn" type="submit" id="venta-ok">Guardar venta</button></div></form></div>
 
@@ -232,6 +239,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 <script>
 /* ====== CONFIGURACIÓN: pegá acá los datos de tu proyecto (Supabase → Settings → API Keys) ====== */
 const SUPABASE_URL = 'https://snceuadecqvdsowcotxd.supabase.co';
+const WEBHOOK_ENVIAR = 'https://envy-recollect-last.ngrok-free.dev/webhook/crm-enviar'; // workflow de n8n "CRM - Enviar mensaje"
 const SUPABASE_KEY = 'sb_publishable_CheOYNpuoS0tG2bqhqULsg_koJ2wqfn'; // clave publishable (es pública por diseño)
 /* ================================================================================================ */
 
@@ -313,10 +321,14 @@ const primerNombre = n => (n||'').trim().split(/\s+/)[0] || '';
 async function abrirChat(ident, nombre){
   chatTab = 'conv'; chatCtx = {ident, nombre, msgs:[], error:null, cargando:true};
   $('#chat-titulo').textContent = nombre || ident; $('#chat-sub').textContent = 'WhatsApp ' + ident;
-  $('#velo').hidden = false; renderChat();
+  $('#velo').hidden = false; renderChat(); renderPie();
   try{ chatCtx.msgs = (await traerChat(ident)).filter(x => { const t = textoMsg(x.message); return t && !esTecnico(t); }); }
   catch(err){ chatCtx.error = err.message || String(err); }
-  chatCtx.cargando = false; renderChat();
+  chatCtx.cargando = false; renderChat(); renderPie();
+}
+function burbuja(x, c){
+  const bot = x.message.type==='ai', txt = textoMsg(x.message), ase = bot && txt.startsWith('[Asesor]');
+  return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase?'Asesor':bot?'Bot':esc(c.nombre||'Cliente')}</small>${esc(ase ? txt.replace(/^\[Asesor\]\s*/,'') : txt)}</div>`;
 }
 function renderChat(){
   const c = chatCtx, cu = $('#chat-cuerpo'), num = String(c.ident).replace(/\D/g,'');
@@ -324,7 +336,7 @@ function renderChat(){
   if(c.cargando){ cu.innerHTML = '<div class="vacio">Cargando conversación…</div>'; return; }
   if(chatTab==='res'){ cu.innerHTML = resumenHTML(c); cu.scrollTop = 0; return; }
   if(c.error){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(c.error)}. Ejecutá permisos_chat.sql en Supabase.</div>`; return; }
-  cu.innerHTML = c.msgs.length ? c.msgs.map(x => { const bot = x.message.type==='ai'; return `<div class="burbuja ${bot?'bot':'cli'}"><small>${bot?'Bot':esc(c.nombre||'Cliente')}</small>${esc(textoMsg(x.message))}</div>`; }).join('') : '<div class="vacio">No hay mensajes guardados para este contacto.</div>';
+  cu.innerHTML = c.msgs.length ? c.msgs.map(x => burbuja(x, c)).join('') : '<div class="vacio">No hay mensajes guardados para este contacto.</div>';
   cu.scrollTop = cu.scrollHeight;
 }
 function resumenHTML(c){
@@ -358,6 +370,55 @@ document.addEventListener('click', e => {
   const me = e.target.closest('[data-mes]'); if(me){ const d = new Date(mes.y, mes.m + Number(me.dataset.mes), 1); mes = {y:d.getFullYear(), m:d.getMonth()}; return pintar(); }
   if(e.target.closest('[data-hoy]')){ const d = new Date(); mes = {y:d.getFullYear(), m:d.getMonth()}; diaSel = hoyStr(); return pintar(); }
   const di = e.target.closest('[data-dia]'); if(di){ diaSel = di.dataset.dia; return pintar(); } const b = e.target.closest('[data-chat]'); if(b) abrirChat(b.dataset.chat, b.dataset.nombre); });
+/* ---------- Responder desde el CRM ---------- */
+const contactoDe = ident => D.contactos.find(x => x.identificador===ident);
+const botPausado = ct => !!(ct && ct.bot_pausado_hasta && new Date(ct.bot_pausado_hasta) > new Date());
+const ventanaAbierta = ct => !ct?.ultimo_contacto || (Date.now() - new Date(ct.ultimo_contacto).getTime()) < 24*3600*1000;
+function renderPie(){
+  const c = chatCtx, ct = contactoDe(c.ident) || {}, pausado = botPausado(ct), abierta = ventanaAbierta(ct);
+  const hora = pausado ? new Date(ct.bot_pausado_hasta).toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'}) : '';
+  const prev = $('#chat-texto')?.value || '';
+  $('#chat-pie').innerHTML = `<div class="pie">
+    <div class="estado-bot"><span class="pill ${pausado?'p-derivada':'p-confirmado'}">${pausado ? 'Bot pausado hasta '+hora : 'Bot activo'}</span>
+      ${pausado ? '<button type="button" class="btn sec chico" data-bot="reactivar">Reactivar bot</button>' : '<button type="button" class="btn sec chico" data-bot="pausar">Pausar bot 2 h</button>'}</div>
+    ${abierta ? `<div class="compositor"><textarea id="chat-texto" rows="2" placeholder="Escribí tu respuesta. Al enviar, el bot se pausa 2 horas para este cliente." aria-label="Mensaje al cliente">${esc(prev)}</textarea><button class="btn" type="button" id="chat-enviar">Enviar</button></div>`
+      : '<div class="sub">Pasaron más de 24 h desde el último mensaje del cliente. WhatsApp no permite escribirle libremente: usá el botón Abrir en WhatsApp.</div>'}
+    <div class="error" id="chat-error" role="alert"></div></div>`;
+}
+async function pausarBot(ident, horas){
+  const ct = contactoDe(ident); if(!ct) return;
+  const hasta = horas ? new Date(Date.now()+horas*3600*1000).toISOString() : null;
+  try{
+    if(!DEMO){ const {error} = await db.from('contactos').update({bot_pausado_hasta:hasta}).eq('id', ct.id); if(error) throw error; }
+    ct.bot_pausado_hasta = hasta; renderPie();
+  }catch(err){ $('#chat-error').textContent = 'No se pudo cambiar el estado del bot: ' + (err.message||err) + '. ¿Ejecutaste permisos_operador.sql?'; }
+}
+async function enviarMensaje(){
+  const area = $('#chat-texto'), texto = area.value.trim(), btn = $('#chat-enviar'); if(!texto) return;
+  btn.disabled = true; $('#chat-error').textContent = '';
+  try{
+    if(!DEMO){
+      const {data} = await db.auth.getSession(), token = data.session?.access_token;
+      const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'ngrok-skip-browser-warning':'1'}, body:JSON.stringify({telefono:chatCtx.ident, texto})});
+      if(r.status===401) throw new Error('sesión no válida, volvé a ingresar');
+      if(!r.ok) throw new Error('el servidor respondió ' + r.status);
+    }
+    chatCtx.msgs.push({id:Date.now(), message:{type:'ai', content:'[Asesor] ' + texto}});
+    const ct = contactoDe(chatCtx.ident); if(ct) ct.bot_pausado_hasta = new Date(Date.now()+2*3600*1000).toISOString();
+    area.value = ''; renderChat(); renderPie();
+  }catch(err){ $('#chat-error').textContent = 'No se pudo enviar: ' + (err.message||err); btn.disabled = false; }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-bot]'); if(b) pausarBot(chatCtx.ident, b.dataset.bot==='pausar' ? 2 : 0);
+  if(e.target.closest('#chat-enviar')) enviarMensaje();
+});
+document.addEventListener('keydown', e => { if(e.target.id==='chat-texto' && e.key==='Enter' && !e.shiftKey){ e.preventDefault(); enviarMensaje(); } });
+setInterval(async () => {
+  if($('#velo').hidden || !chatCtx || chatCtx.cargando) return;
+  try{ const m = (await traerChat(chatCtx.ident)).filter(x => { const t = textoMsg(x.message); return t && !esTecnico(t); });
+    if(m.length !== chatCtx.msgs.length){ chatCtx.msgs = m; renderChat(); } }catch(e){}
+}, 10000);
+
 /* Arrastrar tarjetas entre etapas */
 document.addEventListener('dragstart', e => { const t = e.target.closest?.('.tarjeta[data-id], .tarjeta[data-contacto]'); if(!t) return; e.dataTransfer.setData('text/plain', t.dataset.id ? 'q'+t.dataset.id : 'c'+t.dataset.contacto); e.dataTransfer.effectAllowed = 'move'; t.classList.add('arrastra'); });
 document.addEventListener('dragend', e => { e.target.classList?.remove('arrastra'); document.querySelectorAll('.col.sobre').forEach(c => c.classList.remove('sobre')); });

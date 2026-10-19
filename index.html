@@ -245,6 +245,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 <div class="velo centro" id="venta" hidden><form class="modal" id="form-venta" role="dialog" aria-modal="true" aria-labelledby="venta-t"><h2 id="venta-t" style="font-size:20px">Registrar venta</h2><div class="sub" id="venta-sub"></div><label>Monto cobrado (USD)<input id="venta-monto" type="number" min="0" step="0.01" inputmode="decimal" required></label><div class="error" id="venta-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="venta-cancelar">Cancelar</button><button class="btn" type="submit" id="venta-ok">Guardar venta</button></div></form></div>
 
 <div class="velo centro" id="perdida" hidden><form class="modal" id="form-perdida" role="dialog" aria-modal="true" aria-labelledby="perdida-t"><h2 id="perdida-t" style="font-size:20px">¿Por qué se perdió?</h2><div class="sub" id="perdida-sub"></div><label>Motivo<select id="perdida-motivo" style="padding:11px 12px;font-size:16px"><option value="sin_stock">Sin stock</option><option value="precio">Precio</option><option value="no_respondio">No respondió</option><option value="otro">Otro</option></select></label><div class="error" id="perdida-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="perdida-cancelar">Cancelar</button><button class="btn" type="submit" id="perdida-ok">Guardar</button></div></form></div>
+<div class="velo centro" id="aviso" hidden><form class="modal" id="form-aviso" role="dialog" aria-modal="true" aria-labelledby="aviso-t" style="width:min(480px,100%)"><h2 id="aviso-t" style="font-size:20px">Avisar que ingresó</h2><div class="sub" id="aviso-sub"></div><label>Mensaje<textarea id="aviso-texto" rows="5" style="width:100%;padding:11px 12px;font-size:15px;line-height:1.5"></textarea></label><div class="sub" id="aviso-nota"></div><div class="error" id="aviso-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn sec" type="button" id="aviso-cancelar">Cancelar</button><a class="btn wa-btn" id="aviso-wa" href="#" target="_blank" rel="noopener">Abrir en WhatsApp</a><button class="btn" type="button" id="aviso-enviar">Enviar desde el CRM</button></div></form></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -442,7 +443,7 @@ document.addEventListener('dragover', e => { const c = e.target.closest?.('.col'
 document.addEventListener('drop', e => { const c = e.target.closest?.('.col'); if(!c || c.dataset.etapa==='nuevo') return; e.preventDefault(); c.classList.remove('sobre'); const raw = e.dataTransfer.getData('text/plain'), id = Number(raw.slice(1)); if(!id) return; if(raw[0]==='c') moverContacto(id, c.dataset.etapa); else moverConsulta(id, c.dataset.etapa); });
 $('#chat-cerrar').addEventListener('click', () => $('#velo').hidden = true);
 $('#velo').addEventListener('click', e => { if(e.target.id==='velo') $('#velo').hidden = true; });
-document.addEventListener('keydown', e => { if(e.key==='Escape'){ $('#velo').hidden = true; $('#venta').hidden = true; $('#perdida').hidden = true; } });
+document.addEventListener('keydown', e => { if(e.key==='Escape'){ $('#velo').hidden = true; $('#venta').hidden = true; $('#perdida').hidden = true; $('#aviso').hidden = true; } });
 
 /* ---------- Vistas ---------- */
 const cliente = t => t?.consultas?.contactos ?? {};
@@ -628,12 +629,54 @@ function vPerdidos(){
     <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
     <td><select data-t="consultas" data-id="${q.id}" data-c="motivo_perdida" aria-label="Motivo">${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}" ${k===motivoDe(q)?'selected':''}>${v}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td>
     <td class="sub" style="max-width:220px">${esc(q.notas||'')}</td>
-    <td style="white-space:nowrap">${btnChat(c)} <button class="btn sec chico" type="button" data-recuperar="${q.id}">Recuperar</button></td></tr>`; }).join('');
+    <td style="white-space:nowrap">${btnChat(c)} ${motivoDe(q)==='sin_stock' ? `<button class="btn chico" type="button" data-avisar="${q.id}">${/Avisado ingreso/.test(q.notas||'') ? 'Avisar de nuevo' : 'Avisar que ingresó'}</button> ` : ''}<button class="btn sec chico" type="button" data-recuperar="${q.id}">Recuperar</button></td></tr>`; }).join('');
   return `<section class="vista"><div class="fila"><h2>Perdidos</h2><div class="filtros"><select id="f-perdidos" aria-label="Filtrar por motivo"><option value="todos">Todos los motivos</option>${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select></div></div>
   <div class="kpis" style="margin-bottom:20px"><div class="kpi"><div class="etq">Consultas perdidas</div><div class="n">${l.length}</div></div><div class="kpi"><div class="etq">Unidades pedidas</div><div class="n">${unidades}</div></div><div class="kpi"><div class="etq">Medidas distintas</div><div class="n">${rank.length}</div></div></div>
   <div class="panel" style="margin-bottom:20px"><h3>Medidas más pedidas${fPerdidos==='sin_stock' ? ' sin stock' : ''}</h3>${rank.length ? `<div class="rank">${rank.slice(0,8).map(([m,o]) => `<div class="fila-r"><span class="medida">${esc(m)}</span><div class="barra"><i style="width:${Math.round(o.n/max*100)}%"></i></div><span class="cnt">${o.n} ${o.n===1?'pedido':'pedidos'} <small>${o.u ? '· '+o.u+' u.' : ''}</small></span></div>`).join('')}</div>` : '<div class="vacio">No hay pedidos perdidos con este motivo.</div>'}</div>
   <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Pedido</th><th>Motivo</th><th>Notas</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="6" class="vacio">No hay consultas perdidas con este motivo.</td></tr>'}</tbody></table></div></section>`;
 }
+/* ---------- Avisar que ingresó (pedidos sin stock) ---------- */
+let avisoId = null;
+function abrirAviso(id){
+  const q = D.consultas.find(x => x.id===id); if(!q) return; avisoId = id;
+  const c = q.contactos ?? {}, ct = contactoDe(c.identificador) || c, nom = (c.nombre||'').split(' ')[0] || '';
+  const pedido = `${q.cantidad ? q.cantidad+' × ' : ''}${q.medida||'las cubiertas'}`;
+  const texto = `¡Hola${nom ? ' '+nom : ''}! Te escribimos de Total Neumáticos. Ingresaron las cubiertas que nos pediste (${pedido}) y en ese momento no teníamos. ¿Te interesa que te las reservemos?`;
+  const abierta = ventanaAbierta(ct);
+  $('#aviso-sub').textContent = `${c.nombre || c.identificador || 'Cliente'} · ${pedido}`;
+  $('#aviso-texto').value = texto; $('#aviso-error').textContent = '';
+  $('#aviso-enviar').hidden = !abierta;
+  $('#aviso-nota').textContent = abierta ? 'El cliente escribió hace menos de 24 h: podés enviarlo directo desde acá.' : 'Pasaron más de 24 h desde su último mensaje, así que WhatsApp no deja enviarlo desde el sistema. Abrilo en WhatsApp y mandalo desde tu número.';
+  $('#aviso-wa').href = `${waLink(c.identificador||'')}?text=${encodeURIComponent(texto)}`;
+  $('#aviso').hidden = false;
+}
+async function marcarAvisado(id){
+  const q = D.consultas.find(x => x.id===id); if(!q) return;
+  const d = new Date(), f = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+  const notas = ((q.notas||'') + (q.notas ? ' · ' : '') + `Avisado ingreso ${f}`).trim();
+  try{ await actualizar('consultas', id, {notas}); q.notas = notas; }catch(_){}
+  pintar();
+}
+document.addEventListener('click', async e => {
+  const av = e.target.closest('[data-avisar]'); if(av) return abrirAviso(Number(av.dataset.avisar));
+  if(e.target.closest('#aviso-cancelar')) $('#aviso').hidden = true;
+  if(e.target.closest('#aviso-wa')){ const id = avisoId; setTimeout(() => { $('#aviso').hidden = true; marcarAvisado(id); }, 300); }
+  if(e.target.closest('#aviso-enviar')){
+    const q = D.consultas.find(x => x.id===avisoId), texto = $('#aviso-texto').value.trim(), btn = $('#aviso-enviar'); if(!q || !texto) return;
+    const ident = q.contactos?.identificador; btn.disabled = true; $('#aviso-error').textContent = '';
+    try{
+      if(!DEMO){
+        const {data} = await db.auth.getSession(), token = data.session?.access_token;
+        const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'ngrok-skip-browser-warning':'1'}, body:JSON.stringify({telefono:ident, texto})});
+        if(r.status===401) throw new Error('sesión no válida, volvé a ingresar');
+        if(!r.ok) throw new Error('el servidor respondió ' + r.status);
+      }
+      const ct = contactoDe(ident); if(ct) ct.bot_pausado_hasta = new Date(Date.now()+2*3600*1000).toISOString();
+      $('#aviso').hidden = true; await marcarAvisado(avisoId);
+    }catch(err){ $('#aviso-error').textContent = 'No se pudo enviar: ' + (err.message||err); }
+    btn.disabled = false;
+  }
+});
 function toggleAgenda(){
   return `<div class="seg" role="group" aria-label="Vista de la agenda"><button type="button" data-modo="calendario" aria-pressed="${modoAgenda==='calendario'}">Calendario</button><button type="button" data-modo="lista" aria-pressed="${modoAgenda==='lista'}">Lista</button></div>`;
 }

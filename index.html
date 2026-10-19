@@ -185,6 +185,10 @@ a.wa:hover{text-decoration:underline}
 .cal .dia.hoy .n{background:var(--naranja);color:#fff;border-radius:50%;width:24px;height:24px;display:grid;place-items:center}
 .cal .chip{font-size:12px;font-weight:600;background:#ffd21f26;color:var(--amarillo);border-radius:4px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal .chip.ok{background:#5fd68a24;color:var(--ok)}
+.cal .chip.tarea{background:#f26a2129;color:#ff9b66}
+.cal .chip.tarea.hecha{opacity:.55;text-decoration:line-through}
+.leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--apagado);margin:10px 2px 0}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .cal .mas{font-size:11.5px;color:var(--apagado)}
 .cal .punto{display:none;font-weight:800;font-size:12px;background:var(--amarillo);color:var(--verde);border-radius:99px;min-width:20px;height:20px;place-items:center;padding:0 5px;align-self:flex-start}
 @media (max-width:640px){.cal .chip,.cal .mas{display:none}.cal .punto{display:inline-grid}.cal .dia,.cal .vacia{min-height:56px;padding:5px}.mesnav h2{min-width:0;font-size:19px}}
@@ -320,7 +324,7 @@ const fmtTs = t => { const d = new Date(t); return d.toLocaleDateString('es-PY',
 const waLink = tel => `https://wa.me/${String(tel).replace(/\D/g,'')}`;
 
 let db = null, D = {contactos:[],consultas:[],turnos:[],perfiles:[],tareas:[],ind:{total_leads:0,leads_calificados:0,ventas_agendadas:0}};
-let UID = null, EMAIL = '', ROLES_OK = true, fAsig = 'todos', fTareas = null, fTareaOp = 'todos';
+let fCalTareas = null, UID = null, EMAIL = '', ROLES_OK = true, fAsig = 'todos', fTareas = null, fTareaOp = 'todos';
 const perfilDe = id => D.perfiles.find(p => p.user_id===id);
 const yo = () => perfilDe(UID) || {rol:'operador', nombre:''};
 const esSup = () => yo().rol==='supervisor';
@@ -916,20 +920,32 @@ function toggleAgenda(){
   return `<div class="seg" role="group" aria-label="Vista de la agenda"><button type="button" data-modo="calendario" aria-pressed="${modoAgenda==='calendario'}">Calendario</button><button type="button" data-modo="lista" aria-pressed="${modoAgenda==='lista'}">Lista</button></div>`;
 }
 function vCalendario(){
+  if(fCalTareas===null) fCalTareas = esSup() ? 'todas' : 'mias';
   const {y,m} = mes, offset = (new Date(y,m,1).getDay()+6)%7, dias = new Date(y,m+1,0).getDate(), h = hoyStr();
-  const por = {}; D.turnos.filter(t => t.fecha && !['cancelado','no_vino'].includes(t.estado)).forEach(t => (por[t.fecha] = por[t.fecha] || []).push(t));
+  const por = {};
+  D.turnos.filter(t => t.fecha && !['cancelado','no_vino'].includes(t.estado)).forEach(t => (por[t.fecha] = por[t.fecha] || []).push({k:'t', hora:t.hora, t}));
+  (fCalTareas==='no' ? [] : D.tareas.filter(t => t.vence && (fCalTareas==='todas' || t.asignado_a===UID))).forEach(t => (por[t.vence] = por[t.vence] || []).push({k:'x', hora:t.hora, t}));
+  const orden = (a,b) => (a.hora||'99').localeCompare(b.hora||'99');
   let celdas = ['L','M','M','J','V','S','D'].map(d => `<div class="dow">${d}</div>`).join('') + '<div class="vacia"></div>'.repeat(offset);
   for(let d=1; d<=dias; d++){
-    const f = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, ts = (por[f]||[]).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
-    const dom = (offset+d-1)%7===6;
-    celdas += `<button type="button" class="dia${dom?' dom':''}${f===h?' hoy':''}${f===diaSel?' sel':''}" data-dia="${f}" aria-label="${d} de ${MESES[m]}, ${ts.length} turnos"><span class="n">${d}</span>${ts.slice(0,2).map(t => `<span class="chip${t.estado==='confirmado'?' ok':''}">${fmtHora(t.hora)} ${esc((cliente(t).nombre||'').split(' ')[0])}</span>`).join('')}${ts.length>2 ? `<span class="mas">+${ts.length-2} más</span>` : ''}${ts.length ? `<span class="punto">${ts.length}</span>` : ''}</button>`;
+    const f = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, ts = (por[f]||[]).sort(orden);
+    const dom = (offset+d-1)%7===6, nT = ts.filter(x => x.k==='t').length, nX = ts.length - nT;
+    const chip = x => x.k==='t'
+      ? `<span class="chip${x.t.estado==='confirmado'?' ok':''}">${fmtHora(x.t.hora)} ${esc((cliente(x.t).nombre||'').split(' ')[0])}</span>`
+      : `<span class="chip tarea${x.t.estado==='hecha'?' hecha':''}">${x.t.hora ? fmtHora(x.t.hora)+' ' : ''}${esc(x.t.titulo)}</span>`;
+    celdas += `<button type="button" class="dia${dom?' dom':''}${f===h?' hoy':''}${f===diaSel?' sel':''}" data-dia="${f}" aria-label="${d} de ${MESES[m]}, ${nT} turnos, ${nX} tareas"><span class="n">${d}</span>${ts.slice(0,2).map(chip).join('')}${ts.length>2 ? `<span class="mas">+${ts.length-2} más</span>` : ''}${ts.length ? `<span class="punto">${ts.length}</span>` : ''}</button>`;
   }
-  const delDia = (por[diaSel]||[]).sort((a,b) => (a.hora||'').localeCompare(b.hora||''));
-  const detalle = delDia.map(t => { const c = cliente(t), q = t.consultas ?? {}; return `<div class="item"><div class="hora">${fmtHora(t.hora)}</div><div class="cuerpo"><b>${esc(c.nombre||c.identificador||'Sin nombre')}</b><span class="sub">${q.cantidad ? esc(q.cantidad)+' × ' : ''}${esc(q.medida||'')} ${esc(q.modelo||'')} · ${esc(t.modalidad||'')}${t.observaciones ? ' · '+esc(t.observaciones) : ''}</span></div>${btnChat(c)}<select data-t="turnos" data-id="${t.id}" data-c="estado" aria-label="Estado del turno">${ESTADOS_TURNO.map(e => `<option value="${e}" ${e===t.estado?'selected':''}>${e.replace('_',' ')}</option>`).join('')}</select><span class="guardado" hidden>✓</span></div>`; }).join('');
+  const delDia = (por[diaSel]||[]).sort(orden);
+  const detalle = delDia.map(x => {
+    if(x.k==='x'){ const t = x.t, c = t.contacto_id ? ctDeId(t.contacto_id) : null;
+      return `<div class="item"><div class="hora">${t.hora ? fmtHora(t.hora) : '—'}</div><div class="cuerpo"><b>${t.contacto_id ? `<a href="#" class="wa" data-ficha="${t.contacto_id}">${esc(t.titulo)}</a>` : esc(t.titulo)}</b><span class="sub"><span class="pill ${t.estado==='hecha'?'p-confirmado':'p-abierta'}">tarea ${t.estado}</span> ${esc(nomOp(t.asignado_a))}${c ? ' · '+esc(c.nombre||c.identificador) : ''}${t.detalle ? ' · '+esc(t.detalle) : ''}</span></div>${botonesTarea(t)}</div>`; }
+    const t = x.t, c = cliente(t), q = t.consultas ?? {};
+    return `<div class="item"><div class="hora">${fmtHora(t.hora)}</div><div class="cuerpo"><b>${esc(c.nombre||c.identificador||'Sin nombre')}</b><span class="sub">${q.cantidad ? esc(q.cantidad)+' × ' : ''}${esc(q.medida||'')} ${esc(q.modelo||'')} · ${esc(t.modalidad||'')}${t.observaciones ? ' · '+esc(t.observaciones) : ''}</span></div>${btnChat(c)}<select data-t="turnos" data-id="${t.id}" data-c="estado" aria-label="Estado del turno">${ESTADOS_TURNO.map(e => `<option value="${e}" ${e===t.estado?'selected':''}>${e.replace('_',' ')}</option>`).join('')}</select><span class="guardado" hidden>✓</span></div>`; }).join('');
   const dom = new Date(diaSel+'T00:00:00').getDay()===0;
-  return `<section class="vista"><div class="fila"><div class="mesnav"><button class="btn sec chico" type="button" data-mes="-1" aria-label="Mes anterior">‹</button><h2>${MESES[m]} ${y}</h2><button class="btn sec chico" type="button" data-mes="1" aria-label="Mes siguiente">›</button><button class="btn sec chico" type="button" data-hoy="1">Hoy</button></div>${toggleAgenda()}</div>
+  return `<section class="vista"><div class="fila"><div class="mesnav"><button class="btn sec chico" type="button" data-mes="-1" aria-label="Mes anterior">‹</button><h2>${MESES[m]} ${y}</h2><button class="btn sec chico" type="button" data-mes="1" aria-label="Mes siguiente">›</button><button class="btn sec chico" type="button" data-hoy="1">Hoy</button></div><div class="filtros">${toggleAgenda()}<select id="f-cal-tareas" aria-label="Tareas en el calendario"><option value="mias">Mis tareas</option><option value="todas">Todas las tareas</option><option value="no">Sin tareas</option></select></div></div>
   <div class="cal">${celdas}</div>
-  <div class="panel" style="margin-top:18px"><h3>${fmtFecha(diaSel)}${dom ? ' · Local cerrado' : ''}</h3>${detalle || '<div class="vacio">No hay turnos este día.</div>'}</div></section>`;
+  <div class="leyenda"><span><i style="background:var(--amarillo)"></i>Visita agendada</span><span><i style="background:#ff9b66"></i>Tarea</span></div>
+  <div class="panel" style="margin-top:14px"><h3>${fmtFecha(diaSel)}${dom ? ' · Local cerrado' : ''}</h3>${detalle || '<div class="vacio">No hay turnos ni tareas este día.</div>'}</div></section>`;
 }
 /* ---------- Notificaciones ---------- */
 const TITULO_BASE = document.title;
@@ -1006,6 +1022,7 @@ function pintar(){
   const fp = $('#f-perdidos'); if(fp) fp.value = fPerdidos;
   const fa2 = $('#f-asig'); if(fa2) fa2.value = fAsig;
   const fe = $('#f-etq'); if(fe) fe.value = fEtq;
+  const fct = $('#f-cal-tareas'); if(fct) fct.value = fCalTareas;
   const ft = $('#f-tareas'); if(ft) ft.value = fTareas;
   const fo = $('#f-tarea-op'); if(fo) fo.value = fTareaOp;
   const nT = misPendientes().length, tb = document.querySelector('#tabs [data-v="tareas"]'); if(tb) tb.textContent = nT ? `Tareas (${nT})` : 'Tareas';
@@ -1027,6 +1044,7 @@ $('#main').addEventListener('change', async e => {
   if(el.dataset.tareaAsig){ return cambiarTarea(Number(el.dataset.tareaAsig), {asignado_a: el.value || null}); }
   if(el.id==='f-asig'){ fAsig = el.value; return pintar(); }
   if(el.id==='f-etq'){ fEtq = el.value; return pintar(); }
+  if(el.id==='f-cal-tareas'){ fCalTareas = el.value; return pintar(); }
   if(el.id==='f-tareas'){ fTareas = el.value; return pintar(); }
   if(el.id==='f-tarea-op'){ fTareaOp = el.value; return pintar(); }
   if(el.dataset.moverC){ const v = el.value; el.value = ''; if(v) moverContacto(Number(el.dataset.moverC), v); return; }

@@ -94,6 +94,13 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 .p-abierta{color:var(--apagado);border-color:var(--apagado)}
 select,input[type=text],input[type=email],input[type=password],input[type=search]{background:var(--verde);border:1px solid var(--verde-3);border-radius:6px;padding:8px 10px;color:var(--texto);max-width:100%}
 select{cursor:pointer}
+.etqs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip-e{display:inline-flex;align-items:center;gap:4px;background:var(--verde);border:1px solid var(--verde-3);color:var(--texto);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.chip-e.may{background:var(--amarillo);border-color:var(--amarillo);color:#0a3a2a;font-weight:800}
+.chip-e button{background:none;border:0;color:inherit;cursor:pointer;padding:0 0 0 2px;font-size:15px;line-height:1}
+.sug{display:flex;gap:6px;flex-wrap:wrap}
+.sug button{background:transparent;border:1px dashed var(--verde-3);color:var(--texto);border-radius:999px;padding:3px 10px;font-size:13px;cursor:pointer}
+.sug button:hover{border-color:var(--amarillo)}
 input[type=date],textarea{background:var(--verde);border:1px solid var(--verde-3);border-radius:6px;padding:8px 10px;color:var(--texto);max-width:100%;color-scheme:dark}
 .formtarea{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end;margin-bottom:20px}
 .formtarea label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--apagado)}
@@ -254,6 +261,8 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 <div class="velo centro" id="perdida" hidden><form class="modal" id="form-perdida" role="dialog" aria-modal="true" aria-labelledby="perdida-t"><h2 id="perdida-t" style="font-size:20px">¿Por qué se perdió?</h2><div class="sub" id="perdida-sub"></div><label>Motivo<select id="perdida-motivo" style="padding:11px 12px;font-size:16px"><option value="sin_stock">Sin stock</option><option value="precio">Precio</option><option value="no_respondio">No respondió</option><option value="otro">Otro</option></select></label><div class="error" id="perdida-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="perdida-cancelar">Cancelar</button><button class="btn" type="submit" id="perdida-ok">Guardar</button></div></form></div>
 <div class="velo centro" id="aviso" hidden><form class="modal" id="form-aviso" role="dialog" aria-modal="true" aria-labelledby="aviso-t" style="width:min(480px,100%)"><h2 id="aviso-t" style="font-size:20px">Avisar que ingresó</h2><div class="sub" id="aviso-sub"></div><label>Mensaje<textarea id="aviso-texto" rows="5" style="width:100%;padding:11px 12px;font-size:15px;line-height:1.5"></textarea></label><div class="sub" id="aviso-nota"></div><div class="error" id="aviso-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn sec" type="button" id="aviso-cancelar">Cancelar</button><a class="btn wa-btn" id="aviso-wa" href="#" target="_blank" rel="noopener">Abrir en WhatsApp</a><button class="btn" type="button" id="aviso-enviar">Enviar desde el CRM</button></div></form></div>
 
+<div class="velo centro" id="etq" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="etq-t"><h2 id="etq-t" style="font-size:20px">Etiquetas</h2><div class="sub" id="etq-sub"></div><div class="etqs" id="etq-actuales"></div><div><div class="sub" style="margin-bottom:6px">Sugeridas</div><div class="sug" id="etq-sug"></div></div><form id="form-etq" style="display:flex;gap:8px"><input type="text" id="etq-nueva" maxlength="30" placeholder="Otra etiqueta…" aria-label="Nueva etiqueta" style="flex:1;min-width:0"><button class="btn" type="submit">Agregar</button></form><div class="error" id="etq-error" role="alert"></div><div style="display:flex;justify-content:flex-end"><button class="btn sec" type="button" id="etq-cerrar">Listo</button></div></div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 /* ====== CONFIGURACIÓN: pegá acá los datos de tu proyecto (Supabase → Settings → API Keys) ====== */
@@ -314,6 +323,7 @@ function demoData(){
   const turnos = [
     {id:1,consulta_id:1,modalidad:'Colocación en el local',fecha:h,hora:'09:30:00',precio_unitario:null,total:null,estado:'agendado',observaciones:'Ejemplo: 4 cubiertas, con alineación',creado:new Date().toISOString(),consultas:consultas[0]},
     {id:2,consulta_id:2,modalidad:'Retira en el local',fecha:d(1),hora:'11:00:00',precio_unitario:null,total:null,estado:'confirmado',observaciones:null,creado:new Date().toISOString(),consultas:consultas[1]}];
+  contactos[2].etiquetas = ['Mayorista']; contactos[1].etiquetas = ['Flota','Cliente frecuente'];
   const perfiles = [{user_id:'u1',nombre:'Fabrizio',rol:'supervisor'},{user_id:'u2',nombre:'María',rol:'operador'},{user_id:'u3',nombre:'Juan',rol:'operador'}];
   consultas[0].asignado_a='u2'; consultas[2].asignado_a='u3'; consultas[3].asignado_a='u2';
   const tareas = [
@@ -372,7 +382,7 @@ function burbuja(x, c){
 }
 function renderChat(){
   const c = chatCtx, cu = $('#chat-cuerpo'), num = String(c.ident).replace(/\D/g,'');
-  $('#chat-barra').innerHTML = `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>`;
+  $('#chat-barra').innerHTML = `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>${(() => { const ct = contactoDe(c.ident); return ct ? `<div class="etqs" style="flex-basis:100%">${chipsEtq(ct)}<button class="btn sec chico" type="button" data-etq="${ct.id}">Etiquetas</button></div>` : ''; })()}`;
   if(c.cargando){ cu.innerHTML = '<div class="vacio">Cargando conversación…</div>'; return; }
   if(chatTab==='res'){ cu.innerHTML = resumenHTML(c); cu.scrollTop = 0; return; }
   if(c.error){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(c.error)}. Ejecutá permisos_chat.sql en Supabase.</div>`; return; }
@@ -467,7 +477,7 @@ document.addEventListener('dragover', e => { const c = e.target.closest?.('.col'
 document.addEventListener('drop', e => { const c = e.target.closest?.('.col'); if(!c || c.dataset.etapa==='nuevo') return; e.preventDefault(); c.classList.remove('sobre'); const raw = e.dataTransfer.getData('text/plain'), id = Number(raw.slice(1)); if(!id) return; if(raw[0]==='c') moverContacto(id, c.dataset.etapa); else moverConsulta(id, c.dataset.etapa); });
 $('#chat-cerrar').addEventListener('click', () => $('#velo').hidden = true);
 $('#velo').addEventListener('click', e => { if(e.target.id==='velo') $('#velo').hidden = true; });
-document.addEventListener('keydown', e => { if(e.key==='Escape'){ $('#velo').hidden = true; $('#venta').hidden = true; $('#perdida').hidden = true; $('#aviso').hidden = true; } });
+document.addEventListener('keydown', e => { if(e.key==='Escape'){ $('#velo').hidden = true; $('#venta').hidden = true; $('#perdida').hidden = true; $('#aviso').hidden = true; $('#etq').hidden = true; } });
 
 /* ---------- Vistas ---------- */
 const cliente = t => t?.consultas?.contactos ?? {};
@@ -496,6 +506,44 @@ function bloqueIngresos(){
     <div class="barras" role="img" aria-label="Ingresos de los últimos seis meses">${meses.map(m => `<div class="b${m.act?' act':''}"><em>${m.suma ? fmtUSD(m.suma).replace('USD ','') : ''}</em><i style="height:${Math.max(3, Math.round(m.suma/max*100))}px"></i><span>${m.et}</span></div>`).join('')}</div>
   </div></div>`;
 }
+/* ---------- Etiquetas de contactos ---------- */
+const ETQ_SUG = ['Mayorista','Flota','Taller','Cliente frecuente'];
+let fEtq = 'todas', etqId = null;
+const ctDeId = id => D.contactos.find(x => x.id===id);
+const etqsDe = ct => Array.isArray(ct?.etiquetas) ? ct.etiquetas : [];
+const esMay = t => /mayorista/i.test(t);
+const chipsEtq = ct => { const l = etqsDe(ct); return l.length ? `<span class="etqs">${l.map(t => `<span class="chip-e${esMay(t)?' may':''}">${esc(t)}</span>`).join('')}</span>` : ''; };
+function abrirEtq(id){
+  const ct = ctDeId(id); if(!ct) return; etqId = id;
+  $('#etq-sub').textContent = ct.nombre || ct.identificador || ''; $('#etq-error').textContent = ''; $('#etq-nueva').value = '';
+  renderEtq(); $('#etq').hidden = false;
+}
+function renderEtq(){
+  const ct = ctDeId(etqId), l = etqsDe(ct);
+  $('#etq-actuales').innerHTML = l.length ? l.map(t => `<span class="chip-e${esMay(t)?' may':''}">${esc(t)}<button type="button" data-etq-quitar="${esc(t)}" aria-label="Quitar ${esc(t)}">×</button></span>`).join('') : '<span class="sub">Sin etiquetas todavía.</span>';
+  $('#etq-sug').innerHTML = ETQ_SUG.filter(t => !l.some(x => x.toLowerCase()===t.toLowerCase())).map(t => `<button type="button" data-etq-agregar="${esc(t)}">+ ${esc(t)}</button>`).join('') || '<span class="sub">—</span>';
+}
+async function guardarEtq(lista){
+  const ct = ctDeId(etqId); if(!ct) return;
+  try{
+    if(!DEMO){ const {error} = await db.from('contactos').update({etiquetas:lista}).eq('id', ct.id); if(error) throw error; }
+    ct.etiquetas = lista; renderEtq(); pintar();
+    if(chatCtx && !$('#velo').hidden && chatCtx.ident===ct.identificador) renderChat();
+  }catch(err){ $('#etq-error').textContent = 'No se pudo guardar: ' + (err.message||err) + '. ¿Ejecutaste permisos_etiquetas.sql?'; }
+}
+function agregarEtq(texto){
+  const t = String(texto||'').trim().replace(/\s+/g,' '); if(!t) return;
+  const l = etqsDe(ctDeId(etqId)); if(l.some(x => x.toLowerCase()===t.toLowerCase())) return;
+  guardarEtq([...l, t]);
+}
+document.addEventListener('click', e => {
+  const ab = e.target.closest('[data-etq]'); if(ab) return abrirEtq(Number(ab.dataset.etq));
+  const q = e.target.closest('[data-etq-quitar]'); if(q) return guardarEtq(etqsDe(ctDeId(etqId)).filter(x => x!==q.dataset.etqQuitar));
+  const a = e.target.closest('[data-etq-agregar]'); if(a) return agregarEtq(a.dataset.etqAgregar);
+  if(e.target.closest('#etq-cerrar')) $('#etq').hidden = true;
+});
+document.addEventListener('submit', e => { if(e.target.id==='form-etq'){ e.preventDefault(); agregarEtq($('#etq-nueva').value); $('#etq-nueva').value = ''; } });
+
 /* ---------- Asignación y tareas ---------- */
 const asigCtl = q => !D.perfiles.length ? '' : (esSup()
   ? `<select data-asignar="${q.id}" aria-label="Asignar a"><option value="">Sin asignar</option>${D.perfiles.map(p => `<option value="${esc(p.user_id)}" ${p.user_id===q.asignado_a?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select>`
@@ -606,7 +654,7 @@ function vConsultas(){
   else if(fConsulta!=='todas') l = l.filter(q => q.estado===fConsulta);
   const filas = l.map(q => { const c = q.contactos ?? {}; return `<tr>
     <td class="num">${fmtTs(q.creada)}</td>
-    <td>${esc(c.nombre||'Sin nombre')}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
+    <td>${esc(c.nombre||'Sin nombre')}${chipsEtq(ctDeId(q.contacto_id))}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
     <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
     <td>${q.lead_calificado ? '<span class="pill p-confirmado">calificado</span>' : '<span class="sub">—</span>'}</td>
     <td><select data-t="consultas" data-id="${q.id}" data-c="estado" aria-label="Estado de la consulta">${ESTADOS_CONSULTA.map(e => `<option value="${e}" ${e===q.estado?'selected':''}>${e}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td>
@@ -618,11 +666,13 @@ function vConsultas(){
 }
 function vContactos(){
   const b = busca.trim().toLowerCase();
-  const l = D.contactos.filter(c => !b || (c.nombre||'').toLowerCase().includes(b) || (c.identificador||'').includes(b));
+  const todas = [...new Set(D.contactos.flatMap(etqsDe))].sort((a,b) => a.localeCompare(b));
+  const l = D.contactos.filter(c => (!b || (c.nombre||'').toLowerCase().includes(b) || (c.identificador||'').includes(b))
+    && (fEtq==='todas' || (fEtq==='sin' ? !etqsDe(c).length : etqsDe(c).includes(fEtq))));
   const n = id => D.consultas.filter(q => q.contacto_id===id).length;
-  const filas = l.map(c => `<tr><td><b>${esc(c.nombre||'Sin nombre')}</b></td><td><a class="wa" href="${waLink(c.identificador)}" target="_blank" rel="noopener">${esc(c.identificador)}</a></td><td>${esc(c.pais||'—')}</td><td class="num">${n(c.id)}</td><td class="num">${fmtTs(c.primer_contacto)}</td><td class="num">${fmtTs(c.ultimo_contacto)}</td><td>${btnChat(c)}</td></tr>`).join('');
-  return `<section class="vista"><div class="fila"><h2>Contactos <span class="sub">(${l.length})</span></h2><input type="search" id="busca" value="${esc(busca)}" placeholder="Buscar por nombre o número" aria-label="Buscar contacto" style="min-width:260px"></div>
-  <div class="tabla"><table><thead><tr><th>Nombre</th><th>WhatsApp</th><th>País</th><th>Consultas</th><th>Primer contacto</th><th>Último contacto</th><th>Chat</th></tr></thead><tbody>${filas || '<tr><td colspan="7" class="vacio">No hay contactos.</td></tr>'}</tbody></table></div></section>`;
+  const filas = l.map(c => `<tr><td><b>${esc(c.nombre||'Sin nombre')}</b></td><td><a class="wa" href="${waLink(c.identificador)}" target="_blank" rel="noopener">${esc(c.identificador)}</a></td><td>${esc(c.pais||'—')}</td><td><span class="etqs">${chipsEtq(c)}<button class="btn sec chico" type="button" data-etq="${c.id}">${etqsDe(c).length ? 'Editar' : '+ Etiqueta'}</button></span></td><td class="num">${n(c.id)}</td><td class="num">${fmtTs(c.primer_contacto)}</td><td class="num">${fmtTs(c.ultimo_contacto)}</td><td>${btnChat(c)}</td></tr>`).join('');
+  return `<section class="vista"><div class="fila"><h2>Contactos <span class="sub">(${l.length})</span></h2><div class="filtros"><select id="f-etq" aria-label="Filtrar por etiqueta"><option value="todas">Todas las etiquetas</option><option value="sin">Sin etiquetas</option>${todas.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select><input type="search" id="busca" value="${esc(busca)}" placeholder="Buscar por nombre o número" aria-label="Buscar contacto" style="min-width:260px"></div></div>
+  <div class="tabla"><table><thead><tr><th>Nombre</th><th>WhatsApp</th><th>País</th><th>Etiquetas</th><th>Consultas</th><th>Primer contacto</th><th>Último contacto</th><th>Chat</th></tr></thead><tbody>${filas || '<tr><td colspan="8" class="vacio">No hay contactos.</td></tr>'}</tbody></table></div></section>`;
 }
 function turnoDe(q){
   return D.turnos.filter(t => t.consulta_id===q.id && !['cancelado','no_vino'].includes(t.estado)).sort((a,b) => (a.fecha+(a.hora||'')).localeCompare(b.fecha+(b.hora||'')))[0];
@@ -631,6 +681,7 @@ function tarjetaConsulta(q){
   const c = q.contactos ?? {}, t = turnoDe(q);
   return `<article class="tarjeta" draggable="true" data-id="${q.id}">
     <b>${esc(c.nombre||c.identificador||'Sin nombre')}</b>
+    ${chipsEtq(ctDeId(q.contacto_id))}
     <div>${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
     ${t ? `<div class="sub">Visita: <b style="display:inline;color:var(--texto)">${fmtFecha(t.fecha)} ${fmtHora(t.hora)}</b> · ${esc(t.modalidad||'')}</div>` : ''}
     ${q.notas ? `<div class="sub">${esc(q.notas)}</div>` : ''}
@@ -645,7 +696,7 @@ function vPipeline(){
   const nuevos = D.contactos.filter(c => !conConsulta.has(c.id));
   const cols = ETAPAS.map(e => {
     const items = e.k==='nuevo'
-      ? (fAsig!=='todos' ? [] : nuevos).map(c => `<article class="tarjeta" draggable="true" data-contacto="${c.id}"><b>${esc(c.nombre||'Sin nombre')}</b><span class="sub">${esc(c.identificador)} · escribió ${fmtTs(c.primer_contacto)}</span><div class="acc">${btnChat(c)}<select data-mover-c="${c.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo').map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div></article>`)
+      ? (fAsig!=='todos' ? [] : nuevos).map(c => `<article class="tarjeta" draggable="true" data-contacto="${c.id}"><b>${esc(c.nombre||'Sin nombre')}</b>${chipsEtq(c)}<span class="sub">${esc(c.identificador)} · escribió ${fmtTs(c.primer_contacto)}</span><div class="acc">${btnChat(c)}<select data-mover-c="${c.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo').map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div></article>`)
       : D.consultas.filter(q => q.estado===e.k && pasaAsig(q)).map(tarjetaConsulta);
     return `<div class="col" data-etapa="${e.k}" style="--c:${e.c}"><h3><span class="pt"></span>${e.t}<span class="ct">${items.length}</span></h3>${items.join('') || '<div class="vacio-col">Sin elementos</div>'}</div>`;
   }).join('');
@@ -719,7 +770,7 @@ function vPerdidos(){
   const rank = Object.entries(por).sort((a,b) => b[1].n-a[1].n || b[1].u-a[1].u), max = rank.length ? rank[0][1].n : 1;
   const unidades = l.reduce((a,q) => a + (Number(q.cantidad)||0), 0);
   const filas = l.map(q => { const c = q.contactos ?? {}; return `<tr><td class="num">${fmtTs(q.creada)}</td>
-    <td>${esc(c.nombre||'Sin nombre')}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
+    <td>${esc(c.nombre||'Sin nombre')}${chipsEtq(ctDeId(q.contacto_id))}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
     <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
     <td><select data-t="consultas" data-id="${q.id}" data-c="motivo_perdida" aria-label="Motivo">${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}" ${k===motivoDe(q)?'selected':''}>${v}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td>
     <td class="sub" style="max-width:220px">${esc(q.notas||'')}</td>
@@ -800,6 +851,7 @@ function pintar(){
   const fc = $('#f-consulta'); if(fc) fc.value = fConsulta;
   const fp = $('#f-perdidos'); if(fp) fp.value = fPerdidos;
   const fa2 = $('#f-asig'); if(fa2) fa2.value = fAsig;
+  const fe = $('#f-etq'); if(fe) fe.value = fEtq;
   const ft = $('#f-tareas'); if(ft) ft.value = fTareas;
   const fo = $('#f-tarea-op'); if(fo) fo.value = fTareaOp;
   const nT = misPendientes().length, tb = document.querySelector('#tabs [data-v="tareas"]'); if(tb) tb.textContent = nT ? `Tareas (${nT})` : 'Tareas';
@@ -819,6 +871,7 @@ $('#main').addEventListener('change', async e => {
   }
   if(el.dataset.tareaAsig){ return cambiarTarea(Number(el.dataset.tareaAsig), {asignado_a: el.value || null}); }
   if(el.id==='f-asig'){ fAsig = el.value; return pintar(); }
+  if(el.id==='f-etq'){ fEtq = el.value; return pintar(); }
   if(el.id==='f-tareas'){ fTareas = el.value; return pintar(); }
   if(el.id==='f-tarea-op'){ fTareaOp = el.value; return pintar(); }
   if(el.dataset.moverC){ const v = el.value; el.value = ''; if(v) moverContacto(Number(el.dataset.moverC), v); return; }

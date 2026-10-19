@@ -121,6 +121,19 @@ header .quien .notif span{overflow:visible;text-overflow:clip;white-space:normal
 .n-it>span:last-child{min-width:0;flex:1}
 #toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));max-width:min(380px,calc(100vw - 32px));background:var(--verde-2);border:1px solid var(--amarillo);border-radius:10px;padding:14px 16px;box-shadow:0 14px 34px #00000066;z-index:80;cursor:pointer;font-size:14px;line-height:1.45}
 #toast[hidden]{display:none}
+.combo{position:relative}
+.combo input{width:100%;padding:10px 38px 10px 12px}
+.combo input.sel{border-color:var(--amarillo);font-weight:700}
+.combo-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:0;color:var(--apagado);font-size:22px;line-height:1;cursor:pointer;padding:4px 8px}
+.combo-x:hover{color:var(--texto)}.combo-x[hidden]{display:none}
+.combo-lista{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:40;background:var(--verde);border:1px solid var(--verde-3);border-radius:10px;box-shadow:0 16px 36px #00000066;max-height:280px;overflow:auto;padding:4px}
+.combo-lista[hidden]{display:none}
+.combo-it{display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-radius:7px;cursor:pointer;color:var(--texto)}
+.combo-it b{font-size:14px;overflow-wrap:anywhere;color:var(--texto)}
+.combo-it .sub{font-size:12px}
+.combo-it.act,.combo-it:hover{background:var(--verde-2)}
+.combo-it mark{background:transparent;color:var(--amarillo);font-weight:800}
+.combo-vacio{padding:14px 12px;color:var(--apagado);font-size:13px}
 input[type=date],textarea{background:var(--verde);border:1px solid var(--verde-3);border-radius:6px;padding:8px 10px;color:var(--texto);max-width:100%;color-scheme:dark}
 .formtarea{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end;margin-bottom:20px}
 .formtarea label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--apagado)}
@@ -602,7 +615,7 @@ function vTareas(){
   const carga = esSup() ? `<div class="kpis" style="margin-bottom:20px">${D.perfiles.map(p => `<div class="kpi"><div class="etq">${esc(p.nombre)}${p.rol==='supervisor' ? ' · supervisor' : ''}</div><div class="n">${D.tareas.filter(t => t.asignado_a===p.user_id && t.estado==='pendiente').length}</div><small>tareas pendientes · ${D.consultas.filter(q => q.asignado_a===p.user_id && activos.includes(q.estado)).length} leads activos</small></div>`).join('')}</div>` : '';
   const form = esSup() ? `<form class="formtarea panel" id="form-tarea" data-pre="${tareaPre || ''}"><label class="ancho">Nueva tarea<input type="text" id="tarea-titulo" required maxlength="160" placeholder="Ej: Llamar a Juan por la 265/60R18" style="width:100%"></label>
     <label>Asignar a<select id="tarea-asig" required>${D.perfiles.map(p => `<option value="${esc(p.user_id)}">${esc(p.nombre)}</option>`).join('')}</select></label>
-    <label class="ancho">Contacto (opcional)<input type="text" id="tarea-contacto" list="dl-contactos" autocomplete="off" placeholder="Escribí el nombre o el número y elegilo de la lista" style="width:100%"><datalist id="dl-contactos">${D.contactos.map(c => `<option value="${esc(etqContacto(c))}"></option>`).join('')}</datalist></label>
+    <div class="ancho" style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--apagado)"><span>Contacto (opcional)</span><div class="combo"><input type="text" id="tarea-contacto" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="combo-lista" aria-autocomplete="list" placeholder="Buscá por nombre o número…"><button type="button" class="combo-x" id="combo-x" aria-label="Quitar contacto" hidden>×</button><div class="combo-lista" id="combo-lista" role="listbox" hidden></div></div></div>
     <label>Fecha límite<input type="date" id="tarea-vence"></label>
     <label>Hora (opcional)<input type="time" id="tarea-hora"></label>
     <label class="ancho">Detalle (opcional)<input type="text" id="tarea-detalle" maxlength="400" style="width:100%"></label>
@@ -615,12 +628,51 @@ function vTareas(){
   ${carga}${form}
   <div class="tabla"><table><thead><tr><th>Tarea</th><th>Asignada a</th><th>Vence</th><th>Estado</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="5" class="vacio">No hay tareas con este filtro.</td></tr>'}</tbody></table></div></section>`;
 }
+let tareaCid = null, comboIdx = -1, comboRes = [];
+const sinAcentos = t => String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+function marcar(txt, q){
+  const t = String(txt||''); if(!q) return esc(t);
+  const i = sinAcentos(t).indexOf(q); if(i<0) return esc(t);
+  return esc(t.slice(0,i)) + '<mark>' + esc(t.slice(i,i+q.length)) + '</mark>' + esc(t.slice(i+q.length));
+}
+function comboBuscar(){
+  const raw = $('#tarea-contacto').value.trim(), q = sinAcentos(raw), qn = raw.replace(/\D/g,'');
+  let r = D.contactos.filter(c => !q || sinAcentos(c.nombre).includes(q) || (qn.length>=2 && String(c.identificador||'').includes(qn)) || etqsDe(c).some(t => sinAcentos(t).includes(q)));
+  r.sort((a,b) => (sinAcentos(b.nombre).startsWith(q) - sinAcentos(a.nombre).startsWith(q)));
+  comboRes = r.slice(0,8); comboIdx = comboRes.length ? 0 : -1; comboPintar(q);
+}
+function comboPintar(q){
+  const l = $('#combo-lista'); if(!l) return;
+  l.innerHTML = comboRes.length ? comboRes.map((c,i) => `<div class="combo-it${i===comboIdx?' act':''}" role="option" id="combo-o${i}" aria-selected="${i===comboIdx}" data-cid="${c.id}"><b>${marcar(c.nombre||'Sin nombre', q)}</b><span class="sub">${esc(c.identificador||'')}${c.pais ? ' · '+esc(c.pais) : ''}</span>${chipsEtq(c)}</div>`).join('') + (D.contactos.length>8 && !q ? '<div class="combo-vacio">Escribí para filtrar…</div>' : '') : '<div class="combo-vacio">No hay contactos con ese nombre o número.</div>';
+  l.hidden = false; $('#tarea-contacto').setAttribute('aria-expanded','true');
+  const a = $('#combo-o'+comboIdx); if(a) a.scrollIntoView({block:'nearest'});
+}
+function comboCerrar(){ const l = $('#combo-lista'); if(l) l.hidden = true; const i = $('#tarea-contacto'); if(i) i.setAttribute('aria-expanded','false'); }
+function comboElegir(id){
+  const c = ctDeId(Number(id)); if(!c) return; tareaCid = c.id;
+  const i = $('#tarea-contacto'); i.value = c.nombre || c.identificador; i.classList.add('sel'); $('#combo-x').hidden = false; comboCerrar();
+}
+function comboQuitar(){ tareaCid = null; const i = $('#tarea-contacto'); i.value = ''; i.classList.remove('sel'); $('#combo-x').hidden = true; i.focus(); comboBuscar(); }
+document.addEventListener('input', e => { if(e.target.id==='tarea-contacto'){ tareaCid = null; e.target.classList.remove('sel'); $('#combo-x').hidden = !e.target.value; comboBuscar(); } });
+document.addEventListener('focusin', e => { if(e.target.id==='tarea-contacto' && !tareaCid) comboBuscar(); });
+document.addEventListener('mousedown', e => {
+  const it = e.target.closest('.combo-it'); if(it){ e.preventDefault(); return comboElegir(it.dataset.cid); }
+  if(e.target.closest('#combo-x')){ e.preventDefault(); return comboQuitar(); }
+  if(!e.target.closest('.combo')) comboCerrar();
+});
+document.addEventListener('keydown', e => {
+  if(e.target.id!=='tarea-contacto') return;
+  const abierto = !$('#combo-lista').hidden;
+  if(e.key==='ArrowDown' || e.key==='ArrowUp'){ e.preventDefault(); if(!abierto) return comboBuscar(); if(!comboRes.length) return; comboIdx = (comboIdx + (e.key==='ArrowDown'?1:-1) + comboRes.length) % comboRes.length; comboPintar(sinAcentos($('#tarea-contacto').value.trim())); }
+  else if(e.key==='Enter' && abierto && comboIdx>=0){ e.preventDefault(); comboElegir(comboRes[comboIdx].id); }
+  else if(e.key==='Escape' && abierto){ e.stopPropagation(); comboCerrar(); }
+});
 async function crearTarea(){
   const titulo = $('#tarea-titulo').value.trim(), asig = $('#tarea-asig').value, vence = $('#tarea-vence').value || null, detalle = $('#tarea-detalle').value.trim() || null, hora = $('#tarea-hora').value || null;
   const txtC = $('#tarea-contacto').value.trim(); let contacto_id = null;
   if(!titulo) return; $('#tarea-error').textContent = '';
-  if(txtC){ const c = D.contactos.find(x => etqContacto(x).toLowerCase()===txtC.toLowerCase()); if(!c){ $('#tarea-error').textContent = 'Elegí el contacto de la lista desplegable (o dejá el campo vacío).'; return; } contacto_id = c.id; }
-  $('#tarea-ok').disabled = true; tareaPre = null;
+  if(txtC){ if(!tareaCid){ $('#tarea-error').textContent = 'Elegí un contacto de la lista (o dejá el campo vacío).'; return; } contacto_id = tareaCid; }
+  $('#tarea-ok').disabled = true; tareaPre = null; tareaCid = null;
   try{
     let fila = {id:Math.max(0,...D.tareas.map(t => t.id))+1, titulo, detalle, asignado_a:asig, creada_por:UID, vence, hora, contacto_id, estado:'pendiente', creada:new Date().toISOString(), hecha_en:null};
     if(!DEMO){ const nuevo = {titulo, detalle, asignado_a:asig, vence}; if(hora) nuevo.hora = hora; if(contacto_id) nuevo.contacto_id = contacto_id; const {data, error} = await db.from('tareas').insert(nuevo).select('*').single(); if(error) throw error; fila = data; }
@@ -641,7 +693,7 @@ async function borrarTarea(id){
 }
 document.addEventListener('click', e => {
   const f = e.target.closest('[data-ficha]'); if(f){ e.preventDefault(); return abrirFicha(Number(f.dataset.ficha)); }
-  const nt = e.target.closest('[data-nueva-tarea]'); if(nt){ tareaPre = nt.dataset.nuevaTarea; $('#velo').hidden = true; vista = 'tareas'; pintar(); const c = ctDeId(Number(tareaPre)); const i = $('#tarea-contacto'); if(i && c){ i.value = etqContacto(c); $('#tarea-titulo').focus(); } }
+  const nt = e.target.closest('[data-nueva-tarea]'); if(nt){ tareaPre = nt.dataset.nuevaTarea; $('#velo').hidden = true; vista = 'tareas'; pintar(); const c = ctDeId(Number(tareaPre)); if($('#tarea-contacto') && c){ comboElegir(c.id); $('#tarea-titulo').focus(); } }
 });
 document.addEventListener('submit', e => { if(e.target.id==='form-tarea'){ e.preventDefault(); crearTarea(); } });
 document.addEventListener('click', e => {
@@ -996,7 +1048,9 @@ $('#main').addEventListener('input', e => { if(e.target.id==='busca'){ busca = e
 async function recargar(repintar=true){
   try{
     const antes = new Set(misPendientes().map(t => t.id));
-    await cargar(); if(repintar) pintar();
+    await cargar();
+    const f = $('#form-tarea'), escribiendo = f && ($('#tarea-titulo').value || $('#tarea-contacto').value || $('#tarea-detalle').value);
+    if(repintar && !escribiendo) pintar(); else if(repintar) renderNotif();
     if(!notifIniciado){ notifIniciado = true; avisoInicial(); }
     else { const nuevas = misPendientes().filter(t => !antes.has(t.id)); if(nuevas.length) toast(nuevas.length===1 ? `Te asignaron una tarea nueva: ${nuevas[0].titulo}` : `Te asignaron ${nuevas.length} tareas nuevas.`); }
   }catch(err){ $('#msg').textContent = 'No se pudieron cargar los datos: ' + (err.message||err) + '. Revisá que hayas ejecutado el SQL de permisos.'; }

@@ -101,6 +101,26 @@ select{cursor:pointer}
 .sug{display:flex;gap:6px;flex-wrap:wrap}
 .sug button{background:transparent;border:1px dashed var(--verde-3);color:var(--texto);border-radius:999px;padding:3px 10px;font-size:13px;cursor:pointer}
 .sug button:hover{border-color:var(--amarillo)}
+.campana{position:relative;display:inline-flex;align-items:center;gap:6px;padding:8px 12px}
+.campana svg{width:18px;height:18px}
+.campana em.badge{font-style:normal;position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--naranja);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;border:2px solid var(--verde)}
+.campana em.badge.rojo{background:#e5483a}
+.campana em.badge[hidden]{display:none}
+.notif{position:absolute;right:0;top:calc(100% + 10px);width:min(380px,calc(100vw - 32px));max-height:70vh;overflow:auto;background:var(--verde);border:1px solid var(--verde-3);border-radius:12px;box-shadow:0 18px 40px #00000066;z-index:60;text-align:left}
+.notif[hidden]{display:none}
+.notif h3{margin:0;padding:14px 16px 10px;font:700 12px var(--f-label);letter-spacing:.08em;text-transform:uppercase;color:var(--amarillo)}
+.notif button.n-it{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid var(--linea);padding:12px 16px;cursor:pointer;color:var(--texto)}
+.notif button.n-it:hover{background:var(--verde-2)}
+.n-pt{flex:none;width:9px;height:9px;border-radius:50%;margin-top:6px;background:var(--apagado)}
+.n-pt.alta{background:#ff6b5b}.n-pt.media{background:var(--amarillo)}
+.n-it b{display:block;font-size:14px;overflow-wrap:anywhere}
+.n-it .sub{display:block;font-size:12px;margin-top:2px}
+.n-nueva{background:var(--naranja);color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;margin-left:6px;letter-spacing:.04em;vertical-align:middle}
+.notif .vacio{padding:22px 16px}
+header .quien .notif span{overflow:visible;text-overflow:clip;white-space:normal;max-width:none}
+.n-it>span:last-child{min-width:0;flex:1}
+#toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));max-width:min(380px,calc(100vw - 32px));background:var(--verde-2);border:1px solid var(--amarillo);border-radius:10px;padding:14px 16px;box-shadow:0 14px 34px #00000066;z-index:80;cursor:pointer;font-size:14px;line-height:1.45}
+#toast[hidden]{display:none}
 input[type=date],textarea{background:var(--verde);border:1px solid var(--verde-3);border-radius:6px;padding:8px 10px;color:var(--texto);max-width:100%;color-scheme:dark}
 .formtarea{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end;margin-bottom:20px}
 .formtarea label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--apagado)}
@@ -237,7 +257,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
   <header>
     <div class="marca"><b>TOTAL</b><i>Neumáticos</i></div>
     <span class="westlake">WEST LAKE®</span>
-    <div class="quien"><span id="usuario"></span><button class="btn sec" id="btn-actualizar" type="button">Actualizar</button><button class="btn sec" id="btn-salir" type="button">Salir</button></div>
+    <div class="quien"><span id="usuario"></span><div style="position:relative"><button class="btn sec campana" id="btn-notif" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Notificaciones"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><em class="badge" id="notif-n" hidden></em></button><div class="notif" id="notif-panel" hidden role="region" aria-label="Notificaciones"></div></div><button class="btn sec" id="btn-actualizar" type="button">Actualizar</button><button class="btn sec" id="btn-salir" type="button">Salir</button></div>
     <nav role="tablist" id="tabs">
       <button role="tab" data-v="panel" aria-selected="true">Panel</button>
       <button role="tab" data-v="pipeline" aria-selected="false">Pipeline</button>
@@ -251,6 +271,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
   <div id="demo-aviso" class="aviso" hidden>Modo demostración: estos datos son de ejemplo. Completá SUPABASE_URL y SUPABASE_KEY en este archivo para ver los datos reales.</div>
   <div id="msg" class="error" role="alert"></div>
   <main id="main"></main>
+<div id="toast" role="status" hidden></div>
 </div>
 </div>
 
@@ -841,6 +862,69 @@ function vCalendario(){
   <div class="cal">${celdas}</div>
   <div class="panel" style="margin-top:18px"><h3>${fmtFecha(diaSel)}${dom ? ' · Local cerrado' : ''}</h3>${detalle || '<div class="vacio">No hay turnos este día.</div>'}</div></section>`;
 }
+/* ---------- Notificaciones ---------- */
+const TITULO_BASE = document.title;
+let notifIniciado = false;
+const vistoKey = () => 'crm_visto_' + UID;
+const leerVisto = () => { try{ return localStorage.getItem(vistoKey()) || ''; }catch(_){ return ''; } };
+const guardarVisto = () => { try{ localStorage.setItem(vistoKey(), new Date().toISOString()); }catch(_){} };
+const vencPlano = t => !t.vence ? 'Sin fecha límite' : t.vence < hoyStr() ? 'Vencida el ' + fmtFecha(t.vence) : t.vence===hoyStr() ? 'Vence hoy' : 'Vence el ' + fmtFecha(t.vence);
+function notificaciones(){
+  const l = [], h = hoyStr(), visto = leerVisto(), conRoles = D.perfiles.length > 0;
+  const activos = ['abierta','derivada','agendada'];
+  misPendientes().sort((a,b) => (a.vence||'9999').localeCompare(b.vence||'9999')).forEach(t => l.push({
+    n:1, nivel: t.vence && t.vence<h ? 'alta' : t.vence===h ? 'media' : 'baja', titulo:t.titulo, sub:vencPlano(t), nueva: !!visto && (t.creada||'') > visto, ir:'tareas'}));
+  const mio = q => !conRoles || q.asignado_a===UID;
+  const der = D.consultas.filter(q => q.estado==='derivada' && mio(q)).length;
+  if(der) l.push({n:der, nivel:'alta', titulo:`${der} ${der===1?'lead derivado':'leads derivados'} a asesor`, sub:'Esperan que los atiendas', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
+  const abi = conRoles ? D.consultas.filter(q => q.estado==='abierta' && q.asignado_a===UID).length : 0;
+  if(abi) l.push({n:abi, nivel:'media', titulo:`${abi} ${abi===1?'lead con interés tuyo':'leads con interés tuyos'}`, sub:'Para seguir y cerrar', ir:'pipeline', asig:'mias'});
+  const tur = D.turnos.filter(t => t.fecha===h && !['cancelado','no_vino','realizado'].includes(t.estado) && (!conRoles || esSup() || D.consultas.find(q => q.id===t.consulta_id)?.asignado_a===UID)).length;
+  if(tur) l.push({n:tur, nivel:'media', titulo:`${tur} ${tur===1?'visita agendada':'visitas agendadas'} para hoy`, sub:'Revisá la agenda', ir:'agenda'});
+  if(conRoles && esSup()){
+    const sin = D.consultas.filter(q => activos.includes(q.estado) && !q.asignado_a).length;
+    if(sin) l.push({n:sin, nivel:'media', titulo:`${sin} ${sin===1?'lead sin asignar':'leads sin asignar'}`, sub:'Asignalos a un operador', ir:'pipeline', asig:'sin'});
+    const venc = D.tareas.filter(t => t.estado==='pendiente' && t.vence && t.vence<h && t.asignado_a!==UID).length;
+    if(venc) l.push({n:venc, nivel:'alta', titulo:`${venc} ${venc===1?'tarea vencida':'tareas vencidas'} en el equipo`, sub:'De otros operadores', ir:'tareas', todas:true});
+  }
+  return l;
+}
+function renderNotif(){
+  const l = notificaciones(), total = l.reduce((a,x) => a + x.n, 0), b = $('#notif-n');
+  b.hidden = !total; b.textContent = total > 99 ? '99+' : total; b.classList.toggle('rojo', l.some(x => x.nivel==='alta'));
+  $('#btn-notif').setAttribute('aria-label', total ? `Notificaciones: ${total} pendientes` : 'Notificaciones');
+  document.title = total ? `(${total}) ${TITULO_BASE}` : TITULO_BASE;
+  $('#notif-panel').innerHTML = `<h3>Notificaciones${total ? ' · '+total : ''}</h3>` + (l.length ? l.map((x,i) => `<button class="n-it" type="button" data-notif="${i}"><span class="n-pt ${x.nivel}"></span><span><b>${esc(x.titulo)}${x.nueva ? '<span class="n-nueva">NUEVA</span>' : ''}</b><span class="sub">${esc(x.sub)}</span></span></button>`).join('') : '<div class="vacio">Estás al día. No tenés nada pendiente.</div>');
+  window.__notifs = l;
+}
+function toast(texto){
+  const t = $('#toast'); t.textContent = texto; t.hidden = false;
+  clearTimeout(window.__toast); window.__toast = setTimeout(() => t.hidden = true, 9000);
+}
+function avisoInicial(){
+  const l = notificaciones(), total = l.reduce((a,x) => a + x.n, 0); if(!total) return;
+  const tareas = l.filter(x => x.ir==='tareas' && x.n===1 && !x.todas), venc = tareas.filter(x => x.nivel==='alta').length;
+  const partes = []; if(tareas.length) partes.push(`${tareas.length} ${tareas.length===1?'tarea':'tareas'}${venc ? ` (${venc} vencida${venc>1?'s':''})` : ''}`);
+  l.filter(x => !(x.ir==='tareas' && x.n===1) && !x.todas).forEach(x => partes.push(x.titulo.toLowerCase()));
+  toast(`Hola${yo().nombre ? ' '+yo().nombre : ''}, tenés ${total} ${total===1?'pendiente':'pendientes'}: ${partes.join(', ')}.`);
+}
+function abrirNotif(abrir){
+  const p = $('#notif-panel'); p.hidden = !abrir; $('#btn-notif').setAttribute('aria-expanded', String(abrir));
+  if(abrir){ renderNotif(); guardarVisto(); }
+}
+document.addEventListener('click', e => {
+  if(e.target.closest('#btn-notif')) return abrirNotif($('#notif-panel').hidden);
+  if(e.target.closest('#toast')){ $('#toast').hidden = true; return abrirNotif(true); }
+  const it = e.target.closest('[data-notif]');
+  if(it){
+    const x = window.__notifs[Number(it.dataset.notif)]; if(!x) return;
+    vista = x.ir; if(x.asig) fAsig = x.asig; if(x.ir==='tareas') fTareas = x.todas ? 'pendientes' : 'mias';
+    abrirNotif(false); return pintar();
+  }
+  if(!e.target.closest('#notif-panel')) abrirNotif(false);
+});
+document.addEventListener('keydown', e => { if(e.key==='Escape') abrirNotif(false); });
+
 const VISTAS = {panel:vPanel, pipeline:vPipeline, agenda:vAgenda, tareas:vTareas, consultas:vConsultas, perdidos:vPerdidos, contactos:vContactos};
 
 function pintar(){
@@ -855,6 +939,7 @@ function pintar(){
   const ft = $('#f-tareas'); if(ft) ft.value = fTareas;
   const fo = $('#f-tarea-op'); if(fo) fo.value = fTareaOp;
   const nT = misPendientes().length, tb = document.querySelector('#tabs [data-v="tareas"]'); if(tb) tb.textContent = nT ? `Tareas (${nT})` : 'Tareas';
+  renderNotif();
   $('#usuario').textContent = D.perfiles.length ? `${yo().nombre || EMAIL} · ${esSup() ? 'Supervisor' : 'Operador'}` : EMAIL;
   if(foco==='busca'){ const i = $('#busca'); i.focus(); i.setSelectionRange(i.value.length,i.value.length); }
 }
@@ -891,13 +976,18 @@ $('#main').addEventListener('change', async e => {
 });
 $('#main').addEventListener('input', e => { if(e.target.id==='busca'){ busca = e.target.value; pintar(); } });
 async function recargar(repintar=true){
-  try{ await cargar(); if(repintar) pintar(); }catch(err){ $('#msg').textContent = 'No se pudieron cargar los datos: ' + (err.message||err) + '. Revisá que hayas ejecutado el SQL de permisos.'; }
+  try{
+    const antes = new Set(misPendientes().map(t => t.id));
+    await cargar(); if(repintar) pintar();
+    if(!notifIniciado){ notifIniciado = true; avisoInicial(); }
+    else { const nuevas = misPendientes().filter(t => !antes.has(t.id)); if(nuevas.length) toast(nuevas.length===1 ? `Te asignaron una tarea nueva: ${nuevas[0].titulo}` : `Te asignaron ${nuevas.length} tareas nuevas.`); }
+  }catch(err){ $('#msg').textContent = 'No se pudieron cargar los datos: ' + (err.message||err) + '. Revisá que hayas ejecutado el SQL de permisos.'; }
 }
 $('#btn-actualizar').addEventListener('click', () => recargar());
 
 /* ---------- Sesión ---------- */
 function mostrarApp(email, uid){
-  UID = uid; EMAIL = email;
+  UID = uid; EMAIL = email; notifIniciado = false;
   $('#login').hidden = true; $('#app').hidden = false;
   $('#usuario').textContent = email; $('#demo-aviso').hidden = !DEMO;
   recargar();

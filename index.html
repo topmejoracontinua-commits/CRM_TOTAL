@@ -417,9 +417,12 @@ async function abrirChat(ident, nombre, tab='conv'){
   catch(err){ chatCtx.error = err.message || String(err); }
   chatCtx.cargando = false; renderChat(); renderPie();
 }
+const nombreAsesor = () => (yo().nombre || EMAIL.split('@')[0] || 'Asesor').replace(/[\[\]\r\n]/g,'').trim().slice(0,40) || 'Asesor';
+/* Mensajes del equipo: se guardan como "[Asesor:Nombre] texto" (los viejos: "[Asesor] texto") */
+const RE_ASESOR = /^\[Asesor(?::([^\]]*))?\]\s*/;
 function burbuja(x, c){
-  const bot = x.message.type==='ai', txt = textoMsg(x.message), ase = bot && txt.startsWith('[Asesor]');
-  return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase?'Asesor':bot?'Bot':esc(c.nombre||'Cliente')}</small>${esc(ase ? txt.replace(/^\[Asesor\]\s*/,'') : txt)}</div>`;
+  const bot = x.message.type==='ai', txt = textoMsg(x.message), a = bot ? txt.match(RE_ASESOR) : null, ase = !!a;
+  return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}</div>`;
 }
 function renderChat(){
   const c = chatCtx, cu = $('#chat-cuerpo'), num = String(c.ident).replace(/\D/g,'');
@@ -434,7 +437,7 @@ function resumenHTML(c){
   const ct = D.contactos.find(x => x.identificador===c.ident) || {};
   const qs = D.consultas.filter(q => q.contacto_id===ct.id).sort((a,b) => new Date(b.creada)-new Date(a.creada));
   const q = qs[0], t = q ? turnoDe(q) : null, nom = primerNombre(c.nombre || ct.nombre), h = hoyStr();
-  const humanos = c.msgs.filter(m => m.message.type==='human'), bots = c.msgs.filter(m => m.message.type==='ai');
+  const humanos = c.msgs.filter(m => m.message.type==='human'), bots = c.msgs.filter(m => m.message.type==='ai' && !RE_ASESOR.test(textoMsg(m.message)));
   const ultCli = humanos.length ? textoMsg(humanos[humanos.length-1].message) : '', ultBot = bots.length ? textoMsg(bots[bots.length-1].message) : '';
   let accion, sugerido;
   if(!q){ accion = 'Todavía no hay un pedido registrado. Escribile para saber qué medida necesita y ofrecele un presupuesto.'; sugerido = `Hola ${nom}, te escribo de Total Neumáticos. ¿Te puedo ayudar con la medida de cubiertas que buscás?`; }
@@ -493,11 +496,11 @@ async function enviarMensaje(){
   try{
     if(!DEMO){
       const {data} = await db.auth.getSession(), token = data.session?.access_token;
-      const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'ngrok-skip-browser-warning':'1'}, body:JSON.stringify({telefono:chatCtx.ident, texto})});
+      const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'ngrok-skip-browser-warning':'1'}, body:JSON.stringify({telefono:chatCtx.ident, texto, asesor:nombreAsesor()})});
       if(r.status===401) throw new Error('sesión no válida, volvé a ingresar');
       if(!r.ok) throw new Error('el servidor respondió ' + r.status);
     }
-    chatCtx.msgs.push({id:Date.now(), message:{type:'ai', content:'[Asesor] ' + texto}});
+    chatCtx.msgs.push({id:Date.now(), message:{type:'ai', content:'[Asesor:' + nombreAsesor() + '] ' + texto}});
     const ct = contactoDe(chatCtx.ident); if(ct) ct.bot_pausado_hasta = new Date(Date.now()+2*3600*1000).toISOString();
     area.value = ''; renderChat(); renderPie();
   }catch(err){ $('#chat-error').textContent = 'No se pudo enviar: ' + (err.message||err); btn.disabled = false; }
@@ -932,7 +935,7 @@ document.addEventListener('click', async e => {
     try{
       if(!DEMO){
         const {data} = await db.auth.getSession(), token = data.session?.access_token;
-        const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'ngrok-skip-browser-warning':'1'}, body:JSON.stringify({telefono:ident, texto})});
+        const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'ngrok-skip-browser-warning':'1'}, body:JSON.stringify({telefono:ident, texto, asesor:nombreAsesor()})});
         if(r.status===401) throw new Error('sesión no válida, volvé a ingresar');
         if(!r.ok) throw new Error('el servidor respondió ' + r.status);
       }

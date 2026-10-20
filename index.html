@@ -457,6 +457,7 @@ function resumenHTML(c){
 }
 document.addEventListener('click', e => {
   const ctb = e.target.closest('[data-ctab]'); if(ctb){ chatTab = ctb.dataset.ctab; return renderChat(); }
+  const pr = e.target.closest('[data-perd-rango]'); if(pr){ rangoPerdidos(pr.dataset.perdRango); return pintar(); }
   const rc = e.target.closest('[data-recuperar]'); if(rc) return moverConsulta(Number(rc.dataset.recuperar), 'abierta');
   const mt = e.target.closest('[data-monto]'); if(mt) return pedirMonto(Number(mt.dataset.monto), false);
   const mo = e.target.closest('[data-modo]'); if(mo){ modoAgenda = mo.dataset.modo; return pintar(); }
@@ -549,7 +550,7 @@ function bloqueIngresos(){
   </div></div>`;
 }
 /* ---------- Etiquetas de contactos ---------- */
-const ETQ_SUG = ['Mayorista','Flota','Taller','Cliente frecuente'];
+const ETQ_SUG = ['Mayorista','Minorista','Flota','Taller','Cliente frecuente'];
 let fEtq = 'todas', etqId = null, tareaPre = null;
 const ctDeId = id => D.contactos.find(x => x.id===id);
 const etqsDe = ct => Array.isArray(ct?.etiquetas) ? ct.etiquetas : [];
@@ -845,7 +846,16 @@ $('#form-venta').addEventListener('submit', async e => {
 });
 $('#venta-cancelar').addEventListener('click', () => $('#venta').hidden = true);
 const MOTIVOS = {sin_stock:'Sin stock', precio:'Precio', no_respondio:'No respondió', otro:'Otro'};
-let fPerdidos = 'sin_stock', perdidaId = null;
+let fPerdidos = 'sin_stock', perdidaId = null, fPerdDesde = '', fPerdHasta = '', fPerdMedida = '';
+const fechaLocal = iso => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+function rangoPerdidos(k){
+  const hoy = new Date(), f = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`, ant = n => { const d = new Date(); d.setDate(d.getDate()-n); return d; };
+  if(k==='hoy'){ fPerdDesde = fPerdHasta = f(hoy); }
+  else if(k==='7'){ fPerdDesde = f(ant(6)); fPerdHasta = f(hoy); }
+  else if(k==='30'){ fPerdDesde = f(ant(29)); fPerdHasta = f(hoy); }
+  else if(k==='mes'){ fPerdDesde = f(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); fPerdHasta = f(hoy); }
+  else { fPerdDesde = ''; fPerdHasta = ''; }
+}
 function pedirMotivo(id){
   const q = D.consultas.find(x => x.id===id); perdidaId = id;
   $('#perdida-sub').textContent = `${q.contactos?.nombre || q.contactos?.identificador || 'Cliente'} · ${q.cantidad ? q.cantidad+' × ' : ''}${q.medida||''}`;
@@ -862,7 +872,10 @@ $('#form-perdida').addEventListener('submit', async e => {
 $('#perdida-cancelar').addEventListener('click', () => $('#perdida').hidden = true);
 function vPerdidos(){
   const motivoDe = q => q.motivo_perdida || 'otro';
-  const l = D.consultas.filter(q => q.estado==='perdida' && (fPerdidos==='todos' || motivoDe(q)===fPerdidos)).sort((a,b) => new Date(b.creada)-new Date(a.creada));
+  const base = D.consultas.filter(q => q.estado==='perdida' && (fPerdidos==='todos' || motivoDe(q)===fPerdidos) && (!fPerdDesde || fechaLocal(q.creada) >= fPerdDesde) && (!fPerdHasta || fechaLocal(q.creada) <= fPerdHasta));
+  const cuentaMed = {}; base.forEach(q => { const k = q.medida || 'Sin medida'; cuentaMed[k] = (cuentaMed[k]||0) + 1; });
+  if(fPerdMedida && !cuentaMed[fPerdMedida]) fPerdMedida = '';
+  const l = base.filter(q => !fPerdMedida || (q.medida || 'Sin medida')===fPerdMedida).sort((a,b) => new Date(b.creada)-new Date(a.creada));
   const por = {}; l.forEach(q => { const k = q.medida || 'Sin medida'; const o = por[k] = por[k] || {n:0,u:0}; o.n++; o.u += Number(q.cantidad)||0; });
   const rank = Object.entries(por).sort((a,b) => b[1].n-a[1].n || b[1].u-a[1].u), max = rank.length ? rank[0][1].n : 1;
   const unidades = l.reduce((a,q) => a + (Number(q.cantidad)||0), 0);
@@ -872,10 +885,13 @@ function vPerdidos(){
     <td><select data-t="consultas" data-id="${q.id}" data-c="motivo_perdida" aria-label="Motivo">${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}" ${k===motivoDe(q)?'selected':''}>${v}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td>
     <td class="sub" style="max-width:220px">${esc(q.notas||'')}</td>
     <td style="white-space:nowrap">${btnChat(c)} ${motivoDe(q)==='sin_stock' ? `<button class="btn chico" type="button" data-avisar="${q.id}">${/Avisado ingreso/.test(q.notas||'') ? 'Avisar de nuevo' : 'Avisar que ingresó'}</button> ` : ''}<button class="btn sec chico" type="button" data-recuperar="${q.id}">Recuperar</button></td></tr>`; }).join('');
-  return `<section class="vista"><div class="fila"><h2>Perdidos</h2><div class="filtros"><select id="f-perdidos" aria-label="Filtrar por motivo"><option value="todos">Todos los motivos</option>${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select></div></div>
+  return `<section class="vista"><div class="fila"><h2>Perdidos</h2><div class="filtros"><select id="f-perdidos" aria-label="Filtrar por motivo"><option value="todos">Todos los motivos</option>${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+    <select id="f-perd-medida" aria-label="Filtrar por medida"><option value="">Todas las medidas</option>${Object.entries(cuentaMed).sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).map(([m,n]) => `<option value="${esc(m)}" ${m===fPerdMedida?'selected':''}>${esc(m)} (${n})</option>`).join('')}</select></div></div>
+  <div class="fila" style="margin-top:-6px"><div class="filtros" style="align-items:center"><label class="sub" style="display:flex;gap:6px;align-items:center">Desde<input type="date" id="f-perd-desde" value="${esc(fPerdDesde)}" max="${esc(fPerdHasta)}"></label><label class="sub" style="display:flex;gap:6px;align-items:center">Hasta<input type="date" id="f-perd-hasta" value="${esc(fPerdHasta)}" min="${esc(fPerdDesde)}"></label>
+    ${[['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes'],['todo','Todo']].map(([k,t]) => `<button class="btn sec chico" type="button" data-perd-rango="${k}">${t}</button>`).join('')}</div></div>
   <div class="kpis" style="margin-bottom:20px"><div class="kpi"><div class="etq">Consultas perdidas</div><div class="n">${l.length}</div></div><div class="kpi"><div class="etq">Unidades pedidas</div><div class="n">${unidades}</div></div><div class="kpi"><div class="etq">Medidas distintas</div><div class="n">${rank.length}</div></div></div>
-  <div class="panel" style="margin-bottom:20px"><h3>Medidas más pedidas${fPerdidos==='sin_stock' ? ' sin stock' : ''}</h3>${rank.length ? `<div class="rank">${rank.slice(0,8).map(([m,o]) => `<div class="fila-r"><span class="medida">${esc(m)}</span><div class="barra"><i style="width:${Math.round(o.n/max*100)}%"></i></div><span class="cnt">${o.n} ${o.n===1?'pedido':'pedidos'} <small>${o.u ? '· '+o.u+' u.' : ''}</small></span></div>`).join('')}</div>` : '<div class="vacio">No hay pedidos perdidos con este motivo.</div>'}</div>
-  <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Pedido</th><th>Motivo</th><th>Notas</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="6" class="vacio">No hay consultas perdidas con este motivo.</td></tr>'}</tbody></table></div></section>`;
+  <div class="panel" style="margin-bottom:20px"><h3>Medidas más pedidas${fPerdidos==='sin_stock' ? ' sin stock' : ''}</h3>${rank.length ? `<div class="rank">${rank.slice(0,8).map(([m,o]) => `<div class="fila-r"><span class="medida">${esc(m)}</span><div class="barra"><i style="width:${Math.round(o.n/max*100)}%"></i></div><span class="cnt">${o.n} ${o.n===1?'pedido':'pedidos'} <small>${o.u ? '· '+o.u+' u.' : ''}</small></span></div>`).join('')}</div>` : '<div class="vacio">No hay pedidos perdidos con estos filtros.</div>'}</div>
+  <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Pedido</th><th>Motivo</th><th>Notas</th><th></th></tr></thead><tbody>${filas || '<tr><td colspan="6" class="vacio">No hay consultas perdidas con estos filtros.</td></tr>'}</tbody></table></div></section>`;
 }
 /* ---------- Avisar que ingresó (pedidos sin stock) ---------- */
 let avisoId = null;
@@ -1055,6 +1071,9 @@ $('#main').addEventListener('change', async e => {
   if(el.id==='f-agenda'){ fAgenda = el.value; return pintar(); }
   if(el.id==='f-consulta'){ fConsulta = el.value; return pintar(); }
   if(el.id==='f-perdidos'){ fPerdidos = el.value; return pintar(); }
+  if(el.id==='f-perd-medida'){ fPerdMedida = el.value; return pintar(); }
+  if(el.id==='f-perd-desde'){ fPerdDesde = el.value; return pintar(); }
+  if(el.id==='f-perd-hasta'){ fPerdHasta = el.value; return pintar(); }
   if(el.dataset.t){
     try{
       await actualizar(el.dataset.t, Number(el.dataset.id), {[el.dataset.c]: el.value.trim()===''&&el.dataset.c==='notas' ? null : el.value});

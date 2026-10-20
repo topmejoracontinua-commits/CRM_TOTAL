@@ -846,8 +846,15 @@ $('#form-venta').addEventListener('submit', async e => {
 });
 $('#venta-cancelar').addEventListener('click', () => $('#venta').hidden = true);
 const MOTIVOS = {sin_stock:'Sin stock', precio:'Precio', no_respondio:'No respondió', otro:'Otro'};
-let fPerdidos = 'sin_stock', perdidaId = null, fPerdDesde = '', fPerdHasta = '', fPerdMedida = '';
+let fPerdidos = 'sin_stock', perdidaId = null, fPerdDesde = '', fPerdHasta = '', fPerdMedida = '', fPerdBusca = '';
+const claveBusq = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 const fechaLocal = iso => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+function coincidePerd(q){
+  const toks = String(fPerdBusca||'').trim().split(/\s+/).map(claveBusq).filter(Boolean); if(!toks.length) return true;
+  const c = q.contactos ?? {}, ct = ctDeId(q.contacto_id);
+  const pajar = claveBusq([q.medida, q.modelo, c.nombre, c.identificador, q.notas, ...(etqsDe(ct))].join(' '));
+  return toks.every(t => pajar.includes(t));
+}
 function rangoPerdidos(k){
   const hoy = new Date(), f = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`, ant = n => { const d = new Date(); d.setDate(d.getDate()-n); return d; };
   if(k==='hoy'){ fPerdDesde = fPerdHasta = f(hoy); }
@@ -872,7 +879,7 @@ $('#form-perdida').addEventListener('submit', async e => {
 $('#perdida-cancelar').addEventListener('click', () => $('#perdida').hidden = true);
 function vPerdidos(){
   const motivoDe = q => q.motivo_perdida || 'otro';
-  const base = D.consultas.filter(q => q.estado==='perdida' && (fPerdidos==='todos' || motivoDe(q)===fPerdidos) && (!fPerdDesde || fechaLocal(q.creada) >= fPerdDesde) && (!fPerdHasta || fechaLocal(q.creada) <= fPerdHasta));
+  const base = D.consultas.filter(q => q.estado==='perdida' && (fPerdidos==='todos' || motivoDe(q)===fPerdidos) && (!fPerdDesde || fechaLocal(q.creada) >= fPerdDesde) && (!fPerdHasta || fechaLocal(q.creada) <= fPerdHasta) && coincidePerd(q));
   const cuentaMed = {}; base.forEach(q => { const k = q.medida || 'Sin medida'; cuentaMed[k] = (cuentaMed[k]||0) + 1; });
   if(fPerdMedida && !cuentaMed[fPerdMedida]) fPerdMedida = '';
   const l = base.filter(q => !fPerdMedida || (q.medida || 'Sin medida')===fPerdMedida).sort((a,b) => new Date(b.creada)-new Date(a.creada));
@@ -885,7 +892,7 @@ function vPerdidos(){
     <td><select data-t="consultas" data-id="${q.id}" data-c="motivo_perdida" aria-label="Motivo">${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}" ${k===motivoDe(q)?'selected':''}>${v}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td>
     <td class="sub" style="max-width:220px">${esc(q.notas||'')}</td>
     <td style="white-space:nowrap">${btnChat(c)} ${motivoDe(q)==='sin_stock' ? `<button class="btn chico" type="button" data-avisar="${q.id}">${/Avisado ingreso/.test(q.notas||'') ? 'Avisar de nuevo' : 'Avisar que ingresó'}</button> ` : ''}<button class="btn sec chico" type="button" data-recuperar="${q.id}">Recuperar</button></td></tr>`; }).join('');
-  return `<section class="vista"><div class="fila"><h2>Perdidos</h2><div class="filtros"><select id="f-perdidos" aria-label="Filtrar por motivo"><option value="todos">Todos los motivos</option>${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+  return `<section class="vista"><div class="fila"><h2>Perdidos</h2><div class="filtros"><input type="search" id="perd-busca" value="${esc(fPerdBusca)}" placeholder="Buscar medida, cliente o número" aria-label="Buscar en perdidos" style="min-width:240px"><select id="f-perdidos" aria-label="Filtrar por motivo"><option value="todos">Todos los motivos</option>${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
     <select id="f-perd-medida" aria-label="Filtrar por medida"><option value="">Todas las medidas</option>${Object.entries(cuentaMed).sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).map(([m,n]) => `<option value="${esc(m)}" ${m===fPerdMedida?'selected':''}>${esc(m)} (${n})</option>`).join('')}</select></div></div>
   <div class="fila" style="margin-top:-6px"><div class="filtros" style="align-items:center"><label class="sub" style="display:flex;gap:6px;align-items:center">Desde<input type="date" id="f-perd-desde" value="${esc(fPerdDesde)}" max="${esc(fPerdHasta)}"></label><label class="sub" style="display:flex;gap:6px;align-items:center">Hasta<input type="date" id="f-perd-hasta" value="${esc(fPerdHasta)}" min="${esc(fPerdDesde)}"></label>
     ${[['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes'],['todo','Todo']].map(([k,t]) => `<button class="btn sec chico" type="button" data-perd-rango="${k}">${t}</button>`).join('')}</div></div>
@@ -1047,7 +1054,7 @@ function pintar(){
   const nT = misPendientes().length, tb = document.querySelector('#tabs [data-v="tareas"]'); if(tb) tb.textContent = nT ? `Tareas (${nT})` : 'Tareas';
   renderNotif();
   $('#usuario').textContent = D.perfiles.length ? `${yo().nombre || EMAIL} · ${esSup() ? 'Supervisor' : 'Operador'}` : EMAIL;
-  if(foco==='busca'){ const i = $('#busca'); i.focus(); i.setSelectionRange(i.value.length,i.value.length); }
+  if(foco==='busca' || foco==='perd-busca'){ const i = $('#'+foco); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 }
 
 /* ---------- Eventos ---------- */
@@ -1084,7 +1091,7 @@ $('#main').addEventListener('change', async e => {
     }catch(err){ $('#msg').textContent = 'No se pudo guardar: ' + (err.message||err); }
   }
 });
-$('#main').addEventListener('input', e => { if(e.target.id==='busca'){ busca = e.target.value; pintar(); } });
+$('#main').addEventListener('input', e => { if(e.target.id==='busca'){ busca = e.target.value; pintar(); } else if(e.target.id==='perd-busca'){ fPerdBusca = e.target.value; pintar(); } });
 async function recargar(repintar=true){
   try{
     const antes = new Set(misPendientes().map(t => t.id));

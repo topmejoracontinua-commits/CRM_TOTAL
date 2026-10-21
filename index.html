@@ -90,7 +90,15 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 .p-confirmado{color:var(--ok);border-color:var(--ok)}
 .p-realizado,.p-cerrada{color:var(--blanco);border-color:var(--blanco);background:#ffffff18}
 .p-cancelado,.p-perdida,.p-no_vino{color:var(--rojo);border-color:var(--rojo)}
-.p-derivada{color:var(--naranja);border-color:var(--naranja)}
+.p-derivada{color:#ff4d4d;border-color:#ff4d4d;background:#ff4d4d1f;font-weight:800}
+.p-pausa{color:var(--naranja);border-color:var(--naranja)}
+.col[data-etapa="derivada"]{background:#ff3b3014;border-color:#ff4d4d}
+.col[data-etapa="derivada"]>h3{color:#ff6b6b}
+.col[data-etapa="derivada"]>h3 .pt{box-shadow:0 0 0 0 #ff4d4d99;animation:latido 1.6s infinite}
+.col[data-etapa="derivada"] .tarjeta{border-color:#ff4d4d;border-left:5px solid #ff4d4d;background:#3a1816}
+.alerta-der{display:inline-block;align-self:flex-start;background:#ff4d4d;color:#fff;border-radius:4px;padding:2px 8px;font:800 11px var(--f-label);letter-spacing:.06em;text-transform:uppercase}
+@keyframes latido{0%{box-shadow:0 0 0 0 #ff4d4d99}70%{box-shadow:0 0 0 8px #ff4d4d00}100%{box-shadow:0 0 0 0 #ff4d4d00}}
+@media (prefers-reduced-motion:reduce){.col[data-etapa="derivada"]>h3 .pt{animation:none}}
 .p-abierta{color:var(--apagado);border-color:var(--apagado)}
 select,input[type=text],input[type=email],input[type=password],input[type=search]{background:var(--verde);border:1px solid var(--verde-3);border-radius:6px;padding:8px 10px;color:var(--texto);max-width:100%}
 select{cursor:pointer}
@@ -317,7 +325,7 @@ const ESTADOS_TURNO = ['agendado','confirmado','realizado','cancelado','no_vino'
 const ESTADOS_CONSULTA = ['abierta','agendada','derivada','cerrada','perdida'];
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const etiqueta = e => esc(String(e).replace('_',' '));
+const etiqueta = e => esc(e==='derivada' ? 'Pidió asesor' : String(e).replace('_',' '));
 const pill = e => `<span class="pill p-${esc(e)}">${etiqueta(e)}</span>`;
 const hoyStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const fmtFecha = f => { if(!f) return '—'; const [y,m,d] = f.split('-'); return `${d}/${m}/${y}`; };
@@ -337,8 +345,8 @@ let vista = 'panel', fAgenda = 'proximos', fConsulta = 'todas', busca = '';
 let modoAgenda = 'calendario', diaSel = hoyStr(), mes = {y:new Date().getFullYear(), m:new Date().getMonth()};
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const ETAPAS = [
-  {k:'nuevo',t:'Nuevo contacto',c:'#9db8ab'},{k:'abierta',t:'Con interés',c:'#ffd21f'},{k:'derivada',t:'Derivado a asesor',c:'#f26a21'},
-  {k:'agendada',t:'Visita agendada',c:'#5fd68a'},{k:'cerrada',t:'Vendido',c:'#ffffff'},{k:'perdida',t:'Perdido',c:'#ff6b5b'}];
+  {k:'nuevo',t:'Nuevo contacto',c:'#9db8ab'},{k:'derivada',t:'Pidió asesor',c:'#ff4d4d'},{k:'abierta',t:'Con interés',c:'#ffd21f'},
+  {k:'agendada',t:'Visita agendada',c:'#5fd68a'},{k:'cerrada',t:'Vendido',c:'#ffffff'},{k:'perdida',t:'Perdido',c:'#7d8b84'}];
 
 /* ---------- Datos ---------- */
 function demoData(){
@@ -476,7 +484,7 @@ function renderPie(){
   const hora = pausado ? new Date(ct.bot_pausado_hasta).toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'}) : '';
   const prev = $('#chat-texto')?.value || '';
   $('#chat-pie').innerHTML = `<div class="pie">
-    <div class="estado-bot"><span class="pill ${pausado?'p-derivada':'p-confirmado'}">${pausado ? 'Bot pausado hasta '+hora : 'Bot activo'}</span>
+    <div class="estado-bot"><span class="pill ${pausado?'p-pausa':'p-confirmado'}">${pausado ? 'Bot pausado hasta '+hora : 'Bot activo'}</span>
       ${pausado ? '<button type="button" class="btn sec chico" data-bot="reactivar">Reactivar bot</button>' : '<button type="button" class="btn sec chico" data-bot="pausar">Pausar bot 2 h</button>'}</div>
     ${abierta ? `<div class="compositor"><textarea id="chat-texto" rows="2" placeholder="Escribí tu respuesta. Al enviar, el bot se pausa 2 horas para este cliente." aria-label="Mensaje al cliente">${esc(prev)}</textarea><button class="btn" type="button" id="chat-enviar">Enviar</button></div>`
       : '<div class="sub">Pasaron más de 24 h desde el último mensaje del cliente. WhatsApp no permite escribirle libremente: usá el botón Abrir en WhatsApp.</div>'}
@@ -781,6 +789,7 @@ function turnoDe(q){
 function tarjetaConsulta(q){
   const c = q.contactos ?? {}, t = turnoDe(q);
   return `<article class="tarjeta" draggable="true" data-id="${q.id}">
+    ${q.estado==='derivada' ? '<span class="alerta-der">Pidió hablar con una persona</span>' : ''}
     <b>${esc(c.nombre||c.identificador||'Sin nombre')}</b>
     ${chipsEtq(ctDeId(q.contacto_id))}
     <div>${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
@@ -990,7 +999,7 @@ function notificaciones(){
     n:1, nivel: t.vence && t.vence<h ? 'alta' : t.vence===h ? 'media' : 'baja', titulo:t.titulo, sub:vencPlano(t) + (t.hora ? ' · ' + t.hora.slice(0,5) : '') + (t.contacto_id && ctDeId(t.contacto_id) ? ' · ' + (ctDeId(t.contacto_id).nombre || '') : ''), nueva: !!visto && (t.creada||'') > visto, ir:'tareas', ficha:t.contacto_id||null}));
   const mio = q => !conRoles || q.asignado_a===UID;
   const der = D.consultas.filter(q => q.estado==='derivada' && mio(q)).length;
-  if(der) l.push({n:der, nivel:'alta', titulo:`${der} ${der===1?'lead derivado':'leads derivados'} a asesor`, sub:'Esperan que los atiendas', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
+  if(der) l.push({n:der, nivel:'alta', titulo:`${der} ${der===1?'cliente pidió':'clientes pidieron'} hablar con un asesor`, sub:'Esperan que los atiendas', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
   const abi = conRoles ? D.consultas.filter(q => q.estado==='abierta' && q.asignado_a===UID).length : 0;
   if(abi) l.push({n:abi, nivel:'media', titulo:`${abi} ${abi===1?'lead con interés tuyo':'leads con interés tuyos'}`, sub:'Para seguir y cerrar', ir:'pipeline', asig:'mias'});
   const tur = D.turnos.filter(t => t.fecha===h && !['cancelado','no_vino','realizado'].includes(t.estado) && (!conRoles || esSup() || D.consultas.find(q => q.id===t.consulta_id)?.asignado_a===UID)).length;

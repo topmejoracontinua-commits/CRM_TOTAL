@@ -307,7 +307,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 
 <div class="velo centro" id="venta" hidden><form class="modal" id="form-venta" role="dialog" aria-modal="true" aria-labelledby="venta-t"><h2 id="venta-t" style="font-size:20px">Registrar venta</h2><div class="sub" id="venta-sub"></div><label>Monto cobrado (USD)<input id="venta-monto" type="number" min="0" step="0.01" inputmode="decimal" required></label><div class="error" id="venta-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="venta-cancelar">Cancelar</button><button class="btn" type="submit" id="venta-ok">Guardar venta</button></div></form></div>
 
-<div class="velo centro" id="perdida" hidden><form class="modal" id="form-perdida" role="dialog" aria-modal="true" aria-labelledby="perdida-t"><h2 id="perdida-t" style="font-size:20px">¿Por qué se perdió?</h2><div class="sub" id="perdida-sub"></div><label>Motivo<select id="perdida-motivo" style="padding:11px 12px;font-size:16px"><option value="sin_stock">Sin stock</option><option value="precio">Precio</option><option value="no_respondio">No respondió</option><option value="otro">Otro</option></select></label><div class="error" id="perdida-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="perdida-cancelar">Cancelar</button><button class="btn" type="submit" id="perdida-ok">Guardar</button></div></form></div>
+<div class="velo centro" id="perdida" hidden><form class="modal" id="form-perdida" role="dialog" aria-modal="true" aria-labelledby="perdida-t"><h2 id="perdida-t" style="font-size:20px">¿Por qué se perdió?</h2><div class="sub" id="perdida-sub"></div><label>Motivo<select id="perdida-motivo" style="padding:11px 12px;font-size:16px"><option value="sin_stock">Sin stock</option><option value="precio">Precio</option><option value="no_respondio">No respondió</option><option value="cancelacion">Cancelación del cliente</option><option value="otro">Otro</option></select></label><div class="error" id="perdida-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="perdida-cancelar">Cancelar</button><button class="btn" type="submit" id="perdida-ok">Guardar</button></div></form></div>
 <div class="velo centro" id="aviso" hidden><form class="modal" id="form-aviso" role="dialog" aria-modal="true" aria-labelledby="aviso-t" style="width:min(480px,100%)"><h2 id="aviso-t" style="font-size:20px">Avisar que ingresó</h2><div class="sub" id="aviso-sub"></div><label>Mensaje<textarea id="aviso-texto" rows="5" style="width:100%;padding:11px 12px;font-size:15px;line-height:1.5"></textarea></label><div class="sub" id="aviso-nota"></div><div class="error" id="aviso-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn sec" type="button" id="aviso-cancelar">Cancelar</button><a class="btn wa-btn" id="aviso-wa" href="#" target="_blank" rel="noopener">Abrir en WhatsApp</a><button class="btn" type="button" id="aviso-enviar">Enviar desde el CRM</button></div></form></div>
 
 <div class="velo centro" id="etq" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="etq-t"><h2 id="etq-t" style="font-size:20px">Etiquetas</h2><div class="sub" id="etq-sub"></div><div class="etqs" id="etq-actuales"></div><div><div class="sub" style="margin-bottom:6px">Sugeridas</div><div class="sug" id="etq-sug"></div></div><form id="form-etq" style="display:flex;gap:8px"><input type="text" id="etq-nueva" maxlength="30" placeholder="Otra etiqueta…" aria-label="Nueva etiqueta" style="flex:1;min-width:0"><button class="btn" type="submit">Agregar</button></form><div class="error" id="etq-error" role="alert"></div><div style="display:flex;justify-content:flex-end"><button class="btn sec" type="button" id="etq-cerrar">Listo</button></div></div></div>
@@ -325,7 +325,7 @@ const ESTADOS_TURNO = ['agendado','confirmado','realizado','cancelado','no_vino'
 const ESTADOS_CONSULTA = ['abierta','agendada','derivada','cerrada','perdida'];
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const etiqueta = e => esc(e==='derivada' ? 'Pidió asesor' : String(e).replace('_',' '));
+const etiqueta = e => esc(e==='derivada' ? 'Necesita asesor' : String(e).replace('_',' '));
 const pill = e => `<span class="pill p-${esc(e)}">${etiqueta(e)}</span>`;
 const hoyStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const fmtFecha = f => { if(!f) return '—'; const [y,m,d] = f.split('-'); return `${d}/${m}/${y}`; };
@@ -345,7 +345,7 @@ let vista = 'panel', fAgenda = 'proximos', fConsulta = 'todas', busca = '';
 let modoAgenda = 'calendario', diaSel = hoyStr(), mes = {y:new Date().getFullYear(), m:new Date().getMonth()};
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const ETAPAS = [
-  {k:'nuevo',t:'Nuevo contacto',c:'#9db8ab'},{k:'derivada',t:'Pidió asesor',c:'#ff4d4d'},{k:'abierta',t:'Con interés',c:'#ffd21f'},
+  {k:'nuevo',t:'Nuevo contacto',c:'#9db8ab'},{k:'derivada',t:'Necesita asesor',c:'#ff4d4d'},{k:'abierta',t:'Con interés',c:'#ffd21f'},
   {k:'agendada',t:'Visita agendada',c:'#5fd68a'},{k:'cerrada',t:'Vendido',c:'#ffffff'},{k:'perdida',t:'Perdido',c:'#7d8b84'}];
 
 /* ---------- Datos ---------- */
@@ -407,7 +407,7 @@ async function actualizar(tabla, id, campos){
 /* ---------- Chat ---------- */
 const btnChat = c => c?.identificador ? `<button class="btn sec chico" type="button" data-chat="${esc(c.identificador)}" data-nombre="${esc(c.nombre||'')}">Ver chat</button>` : '';
 const textoMsg = m => { const c = m?.content; const t = typeof c==='string' ? c : JSON.stringify(c ?? ''); return t.replace(/\s*FOTO:[^\n]*/gi,'').trim(); };
-const esTecnico = t => { if(/^\[\s*\]$/.test(t)) return true; if(/^[\[{]/.test(t)){ try{ JSON.parse(t); return true; }catch(e){} } return false; };
+const esTecnico = t => { if(/^\[\s*\]$/.test(t) || /^Calling tools?\s*:/i.test(t)) return true; if(/^[\[{]/.test(t)){ try{ JSON.parse(t); return true; }catch(e){} } return false; };
 async function traerChat(ident){
   if(DEMO) return [{id:1,message:{type:'human',content:'Hola, precio de 265/60R18?'}},{id:2,message:{type:'ai',content:'¡Hola! Tenemos Westlake en 265/60R18. ¿Querés que te pase el presupuesto por 4?'}},{id:3,message:{type:'human',content:'Sí, y pasar mañana a colocarlas'}},{id:4,message:{type:'ai',content:'Perfecto, te agendé para mañana a las 09:00. ¡Te esperamos!'}}];
   let r = await db.from('n8n_chat_histories').select('id,message').eq('session_id', ident).order('id');
@@ -449,7 +449,7 @@ function resumenHTML(c){
   const ultCli = humanos.length ? textoMsg(humanos[humanos.length-1].message) : '', ultBot = bots.length ? textoMsg(bots[bots.length-1].message) : '';
   let accion, sugerido;
   if(!q){ accion = 'Todavía no hay un pedido registrado. Escribile para saber qué medida necesita y ofrecele un presupuesto.'; sugerido = `Hola ${nom}, te escribo de Total Neumáticos. ¿Te puedo ayudar con la medida de cubiertas que buscás?`; }
-  else if(q.estado==='derivada'){ accion = 'El cliente pidió hablar con una persona. Contactalo cuanto antes por WhatsApp' + (q.notas ? ` (motivo: ${q.notas}).` : '.'); sugerido = `Hola ${nom}, soy del equipo de Total Neumáticos. Vi tu consulta${q.medida ? ' por la medida '+q.medida : ''} y te escribo para ayudarte.`; }
+  else if(q.estado==='derivada'){ accion = 'El cliente necesita que lo atienda una persona. Contactalo cuanto antes por WhatsApp' + (q.notas ? ` (motivo: ${q.notas}).` : '.'); sugerido = `Hola ${nom}, soy del equipo de Total Neumáticos. Vi tu consulta${q.medida ? ' por la medida '+q.medida : ''} y te escribo para ayudarte.`; }
   else if(q.estado==='agendada' && t){
     if(t.fecha===h){ accion = `Viene hoy a las ${fmtHora(t.hora)} (${t.modalidad||'visita'}). Verificá que ${q.cantidad ? q.cantidad+' × ' : ''}${q.medida||'las cubiertas'} estén separadas.`; sugerido = `Hola ${nom}, te esperamos hoy a las ${fmtHora(t.hora)} en Total Neumáticos. Ya tenemos tus cubiertas separadas.`; }
     else if(t.fecha>h){ accion = `Visita el ${fmtFecha(t.fecha)} a las ${fmtHora(t.hora)}. Confirmale el turno el día anterior y dejá las cubiertas separadas.`; sugerido = `Hola ${nom}, te escribo para confirmar tu visita del ${fmtFecha(t.fecha)} a las ${fmtHora(t.hora)} en Total Neumáticos. ¿Seguimos con ese horario?`; }
@@ -789,7 +789,7 @@ function turnoDe(q){
 function tarjetaConsulta(q){
   const c = q.contactos ?? {}, t = turnoDe(q);
   return `<article class="tarjeta" draggable="true" data-id="${q.id}">
-    ${q.estado==='derivada' ? '<span class="alerta-der">Pidió hablar con una persona</span>' : ''}
+    ${q.estado==='derivada' ? '<span class="alerta-der">Necesita que lo atienda una persona</span>' : ''}
     <b>${esc(c.nombre||c.identificador||'Sin nombre')}</b>
     ${chipsEtq(ctDeId(q.contacto_id))}
     <div>${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
@@ -857,7 +857,7 @@ $('#form-venta').addEventListener('submit', async e => {
   $('#venta-ok').disabled = false;
 });
 $('#venta-cancelar').addEventListener('click', () => $('#venta').hidden = true);
-const MOTIVOS = {sin_stock:'Sin stock', precio:'Precio', no_respondio:'No respondió', otro:'Otro'};
+const MOTIVOS = {sin_stock:'Sin stock', precio:'Precio', no_respondio:'No respondió', cancelacion:'Cancelación del cliente', otro:'Otro'};
 let fPerdidos = 'sin_stock', perdidaId = null, fPerdDesde = '', fPerdHasta = '', fPerdMedida = '', fPerdBusca = '';
 const claveBusq = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 const fechaLocal = iso => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
@@ -999,7 +999,7 @@ function notificaciones(){
     n:1, nivel: t.vence && t.vence<h ? 'alta' : t.vence===h ? 'media' : 'baja', titulo:t.titulo, sub:vencPlano(t) + (t.hora ? ' · ' + t.hora.slice(0,5) : '') + (t.contacto_id && ctDeId(t.contacto_id) ? ' · ' + (ctDeId(t.contacto_id).nombre || '') : ''), nueva: !!visto && (t.creada||'') > visto, ir:'tareas', ficha:t.contacto_id||null}));
   const mio = q => !conRoles || q.asignado_a===UID;
   const der = D.consultas.filter(q => q.estado==='derivada' && mio(q)).length;
-  if(der) l.push({n:der, nivel:'alta', titulo:`${der} ${der===1?'cliente pidió':'clientes pidieron'} hablar con un asesor`, sub:'Esperan que los atiendas', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
+  if(der) l.push({n:der, nivel:'alta', titulo:`${der} ${der===1?'cliente necesita':'clientes necesitan'} un asesor`, sub:'Esperan que los atiendas', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
   const abi = conRoles ? D.consultas.filter(q => q.estado==='abierta' && q.asignado_a===UID).length : 0;
   if(abi) l.push({n:abi, nivel:'media', titulo:`${abi} ${abi===1?'lead con interés tuyo':'leads con interés tuyos'}`, sub:'Para seguir y cerrar', ir:'pipeline', asig:'mias'});
   const tur = D.turnos.filter(t => t.fecha===h && !['cancelado','no_vino','realizado'].includes(t.estado) && (!conRoles || esSup() || D.consultas.find(q => q.id===t.consulta_id)?.asignado_a===UID)).length;

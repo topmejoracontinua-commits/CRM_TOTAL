@@ -884,7 +884,14 @@ $('#form-perdida').addEventListener('submit', async e => {
   e.preventDefault();
   const q = D.consultas.find(x => x.id===perdidaId), campos = {estado:'perdida', motivo_perdida:$('#perdida-motivo').value};
   $('#perdida-ok').disabled = true;
-  try{ await actualizar('consultas', perdidaId, campos); Object.assign(q, campos); $('#perdida').hidden = true; pintar(); }
+  try{
+    await actualizar('consultas', perdidaId, campos); Object.assign(q, campos);
+    /* Una consulta perdida no puede tener visitas pendientes: se cancelan en la agenda. */
+    for(const t of D.turnos.filter(t => t.consulta_id===perdidaId && !['cancelado','no_vino','realizado'].includes(t.estado))){
+      await actualizar('turnos', t.id, {estado:'cancelado'}); t.estado = 'cancelado';
+    }
+    $('#perdida').hidden = true; pintar();
+  }
   catch(err){ $('#perdida-error').textContent = 'No se pudo guardar: ' + (err.message||err) + '. ¿Ejecutaste permisos_perdidos.sql?'; }
   $('#perdida-ok').disabled = false;
 });

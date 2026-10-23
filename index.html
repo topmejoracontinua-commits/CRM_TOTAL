@@ -92,6 +92,11 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 .p-cancelado,.p-perdida,.p-no_vino{color:var(--rojo);border-color:var(--rojo)}
 .p-derivada{color:#ff4d4d;border-color:#ff4d4d;background:#ff4d4d1f;font-weight:800}
 .p-pausa{color:var(--naranja);border-color:var(--naranja)}
+.p-mayorista{color:#4da3ff;border-color:#4da3ff;background:#4da3ff1f;font-weight:800}
+.col[data-etapa="mayorista"]{background:#3d8bff12;border-color:#4da3ff}
+.col[data-etapa="mayorista"]>h3{color:#7bbaff}
+.col[data-etapa="mayorista"] .tarjeta{border-color:#4da3ff;border-left:5px solid #4da3ff;background:#142a40}
+.alerta-may{display:inline-block;align-self:flex-start;background:#4da3ff;color:#06182a;border-radius:4px;padding:2px 8px;font:800 11px var(--f-label);letter-spacing:.06em;text-transform:uppercase}
 .col[data-etapa="derivada"]{background:#ff3b3014;border-color:#ff4d4d}
 .col[data-etapa="derivada"]>h3{color:#ff6b6b}
 .col[data-etapa="derivada"]>h3 .pt{box-shadow:0 0 0 0 #ff4d4d99;animation:latido 1.6s infinite}
@@ -322,10 +327,10 @@ const SUPABASE_KEY = 'sb_publishable_CheOYNpuoS0tG2bqhqULsg_koJ2wqfn'; // clave 
 
 const DEMO = !SUPABASE_URL || !SUPABASE_KEY;
 const ESTADOS_TURNO = ['agendado','confirmado','realizado','cancelado','no_vino'];
-const ESTADOS_CONSULTA = ['abierta','agendada','derivada','cerrada','perdida'];
+const ESTADOS_CONSULTA = ['abierta','agendada','derivada','mayorista','cerrada','perdida'];
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const etiqueta = e => esc(e==='derivada' ? 'Necesita asesor' : String(e).replace('_',' '));
+const etiqueta = e => esc(e==='derivada' ? 'Necesita asesor' : e==='mayorista' ? 'Mayorista' : String(e).replace('_',' '));
 const pill = e => `<span class="pill p-${esc(e)}">${etiqueta(e)}</span>`;
 const hoyStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const fmtFecha = f => { if(!f) return '—'; const [y,m,d] = f.split('-'); return `${d}/${m}/${y}`; };
@@ -345,7 +350,7 @@ let vista = 'panel', fAgenda = 'proximos', fConsulta = 'todas', busca = '';
 let modoAgenda = 'calendario', diaSel = hoyStr(), mes = {y:new Date().getFullYear(), m:new Date().getMonth()};
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const ETAPAS = [
-  {k:'nuevo',t:'Nuevo contacto',c:'#9db8ab'},{k:'derivada',t:'Necesita asesor',c:'#ff4d4d'},{k:'abierta',t:'Con interés',c:'#ffd21f'},
+  {k:'nuevo',t:'Nuevo contacto',c:'#9db8ab'},{k:'derivada',t:'Necesita asesor',c:'#ff4d4d'},{k:'mayorista',t:'Mayorista',c:'#4da3ff'},{k:'abierta',t:'Con interés',c:'#ffd21f'},
   {k:'agendada',t:'Visita agendada',c:'#5fd68a'},{k:'cerrada',t:'Vendido',c:'#ffffff'},{k:'perdida',t:'Perdido',c:'#7d8b84'}];
 
 /* ---------- Datos ---------- */
@@ -362,6 +367,7 @@ function demoData(){
     {id:2,contacto_id:2,medida:'205/55R16',modelo:'Hankook Kinergy',cantidad:2,lead_calificado:true,estado:'agendada',creada:new Date(Date.now()-3600000*30).toISOString(),notas:'Prefiere colocación por la mañana',contactos:contactos[1]},
     {id:3,contacto_id:3,medida:'255/70R16',modelo:null,cantidad:4,lead_calificado:true,estado:'derivada',creada:new Date(Date.now()-3600000*3).toISOString(),notas:'Pidió hablar con un asesor',contactos:contactos[2]},
     {id:4,contacto_id:4,medida:'215/55R18',modelo:null,cantidad:null,lead_calificado:false,estado:'abierta',creada:new Date().toISOString(),notas:null,contactos:contactos[3]}];
+  consultas.push({id:8,contacto_id:5,medida:'11R22.5',modelo:'Westlake',cantidad:24,lead_calificado:true,estado:'mayorista',creada:new Date(Date.now()-3600000).toISOString(),notas:'[Mayorista] Gomería, quiere 24 cubiertas camión con precio por cantidad',contactos:contactos[4]});
   consultas.push({id:5,contacto_id:2,medida:'225/65R17',modelo:'Westlake',cantidad:4,lead_calificado:true,estado:'cerrada',monto:520,cerrada_en:new Date().toISOString(),creada:new Date(Date.now()-86400000*4).toISOString(),notas:null,contactos:contactos[1]},
     {id:6,contacto_id:3,medida:'195/65R15',modelo:'Hankook',cantidad:4,lead_calificado:true,estado:'cerrada',monto:380,cerrada_en:new Date(Date.now()-86400000*38).toISOString(),creada:new Date(Date.now()-86400000*40).toISOString(),notas:null,contactos:contactos[2]},
     {id:7,contacto_id:1,medida:'215/60R16',modelo:'Westlake',cantidad:2,lead_calificado:true,estado:'cerrada',monto:210,cerrada_en:new Date(Date.now()-86400000*70).toISOString(),creada:new Date(Date.now()-86400000*71).toISOString(),notas:null,contactos:contactos[0]});
@@ -450,6 +456,7 @@ function resumenHTML(c){
   let accion, sugerido;
   if(!q){ accion = 'Todavía no hay un pedido registrado. Escribile para saber qué medida necesita y ofrecele un presupuesto.'; sugerido = `Hola ${nom}, te escribo de Total Neumáticos. ¿Te puedo ayudar con la medida de cubiertas que buscás?`; }
   else if(q.estado==='derivada'){ accion = 'El cliente necesita que lo atienda una persona. Contactalo cuanto antes por WhatsApp' + (q.notas ? ` (motivo: ${q.notas}).` : '.'); sugerido = `Hola ${nom}, soy del equipo de Total Neumáticos. Vi tu consulta${q.medida ? ' por la medida '+q.medida : ''} y te escribo para ayudarte.`; }
+  else if(q.estado==='mayorista'){ accion = 'Cliente mayorista (compra por cantidad o para reventa). Atendelo con lista y condiciones de mayorista' + (q.notas ? ` (detalle: ${q.notas}).` : '.'); sugerido = `Hola ${nom}, soy del equipo comercial de Total Neumáticos. Vi tu consulta${q.medida ? ' por la medida '+q.medida : ''} y te escribo para pasarte las condiciones para compras por cantidad.`; }
   else if(q.estado==='agendada' && t){
     if(t.fecha===h){ accion = `Viene hoy a las ${fmtHora(t.hora)} (${t.modalidad||'visita'}). Verificá que ${q.cantidad ? q.cantidad+' × ' : ''}${q.medida||'las cubiertas'} estén separadas.`; sugerido = `Hola ${nom}, te esperamos hoy a las ${fmtHora(t.hora)} en Total Neumáticos. Ya tenemos tus cubiertas separadas.`; }
     else if(t.fecha>h){ accion = `Visita el ${fmtFecha(t.fecha)} a las ${fmtHora(t.hora)}. Confirmale el turno el día anterior y dejá las cubiertas separadas.`; sugerido = `Hola ${nom}, te escribo para confirmar tu visita del ${fmtFecha(t.fecha)} a las ${fmtHora(t.hora)} en Total Neumáticos. ¿Seguimos con ese horario?`; }
@@ -630,7 +637,7 @@ function vTareas(){
   else if(fTareas==='hechas') l = l.filter(t => t.estado==='hecha');
   if(fTareaOp!=='todos') l = l.filter(t => (fTareaOp==='sin' ? !t.asignado_a : t.asignado_a===fTareaOp));
   l.sort((a,b) => (a.estado===b.estado) ? (a.estado==='pendiente' ? (a.vence||'9999').localeCompare(b.vence||'9999') : new Date(b.hecha_en||0)-new Date(a.hecha_en||0)) : (a.estado==='pendiente' ? -1 : 1));
-  const activos = ['abierta','derivada','agendada'];
+  const activos = ['abierta','derivada','mayorista','agendada'];
   const carga = esSup() ? `<div class="kpis" style="margin-bottom:20px">${D.perfiles.map(p => `<div class="kpi"><div class="etq">${esc(p.nombre)}${p.rol==='supervisor' ? ' · supervisor' : ''}</div><div class="n">${D.tareas.filter(t => t.asignado_a===p.user_id && t.estado==='pendiente').length}</div><small>tareas pendientes · ${D.consultas.filter(q => q.asignado_a===p.user_id && activos.includes(q.estado)).length} leads activos</small></div>`).join('')}</div>` : '';
   const form = esSup() ? `<form class="formtarea panel" id="form-tarea" data-pre="${tareaPre || ''}"><label class="ancho">Nueva tarea<input type="text" id="tarea-titulo" required maxlength="160" placeholder="Ej: Llamar a Juan por la 265/60R18" style="width:100%"></label>
     <label>Asignar a<select id="tarea-asig" required>${D.perfiles.map(p => `<option value="${esc(p.user_id)}">${esc(p.nombre)}</option>`).join('')}</select></label>
@@ -724,7 +731,7 @@ function vPanel(){
   const h = hoyStr(), i = D.ind;
   const hoy = D.turnos.filter(t => t.fecha===h && !['cancelado','no_vino'].includes(t.estado));
   const prox = D.turnos.filter(t => t.fecha>h && !['cancelado','no_vino'].includes(t.estado)).slice(0,5);
-  const abiertas = D.consultas.filter(q => ['abierta','derivada'].includes(q.estado)).slice(0,6);
+  const abiertas = D.consultas.filter(q => ['abierta','derivada','mayorista'].includes(q.estado)).slice(0,6);
   const conv = i.leads_calificados ? Math.round(i.ventas_agendadas/i.leads_calificados*100) : 0;
   return `<section class="vista">
   <div class="kpis">
@@ -790,6 +797,7 @@ function tarjetaConsulta(q){
   const c = q.contactos ?? {}, t = turnoDe(q);
   return `<article class="tarjeta" draggable="true" data-id="${q.id}">
     ${q.estado==='derivada' ? '<span class="alerta-der">Necesita que lo atienda una persona</span>' : ''}
+    ${q.estado==='mayorista' ? '<span class="alerta-may">Cliente mayorista</span>' : ''}
     <b>${esc(c.nombre||c.identificador||'Sin nombre')}</b>
     ${chipsEtq(ctDeId(q.contacto_id))}
     <div>${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
@@ -1001,12 +1009,14 @@ const guardarVisto = () => { try{ localStorage.setItem(vistoKey(), new Date().to
 const vencPlano = t => !t.vence ? 'Sin fecha límite' : t.vence < hoyStr() ? 'Vencida el ' + fmtFecha(t.vence) : t.vence===hoyStr() ? 'Vence hoy' : 'Vence el ' + fmtFecha(t.vence);
 function notificaciones(){
   const l = [], h = hoyStr(), visto = leerVisto(), conRoles = D.perfiles.length > 0;
-  const activos = ['abierta','derivada','agendada'];
+  const activos = ['abierta','derivada','mayorista','agendada'];
   misPendientes().sort((a,b) => (a.vence||'9999').localeCompare(b.vence||'9999')).forEach(t => l.push({
     n:1, nivel: t.vence && t.vence<h ? 'alta' : t.vence===h ? 'media' : 'baja', titulo:t.titulo, sub:vencPlano(t) + (t.hora ? ' · ' + t.hora.slice(0,5) : '') + (t.contacto_id && ctDeId(t.contacto_id) ? ' · ' + (ctDeId(t.contacto_id).nombre || '') : ''), nueva: !!visto && (t.creada||'') > visto, ir:'tareas', ficha:t.contacto_id||null}));
   const mio = q => !conRoles || q.asignado_a===UID;
   const der = D.consultas.filter(q => q.estado==='derivada' && mio(q)).length;
   if(der) l.push({n:der, nivel:'alta', titulo:`${der} ${der===1?'cliente necesita':'clientes necesitan'} un asesor`, sub:'Esperan que los atiendas', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
+  const may = D.consultas.filter(q => q.estado==='mayorista' && mio(q)).length;
+  if(may) l.push({n:may, nivel:'alta', titulo:`${may} ${may===1?'cliente mayorista':'clientes mayoristas'} para atender`, sub:'Requieren condiciones y precio de mayorista', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
   const abi = conRoles ? D.consultas.filter(q => q.estado==='abierta' && q.asignado_a===UID).length : 0;
   if(abi) l.push({n:abi, nivel:'media', titulo:`${abi} ${abi===1?'lead con interés tuyo':'leads con interés tuyos'}`, sub:'Para seguir y cerrar', ir:'pipeline', asig:'mias'});
   const tur = D.turnos.filter(t => t.fecha===h && !['cancelado','no_vino','realizado'].includes(t.estado) && (!conRoles || esSup() || D.consultas.find(q => q.id===t.consulta_id)?.asignado_a===UID)).length;

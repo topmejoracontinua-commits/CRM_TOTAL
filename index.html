@@ -321,7 +321,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 <script>
 /* ====== CONFIGURACIÓN: pegá acá los datos de tu proyecto (Supabase → Settings → API Keys) ====== */
 const SUPABASE_URL = 'https://snceuadecqvdsowcotxd.supabase.co';
-const WEBHOOK_ENVIAR = 'https://envy-recollect-last.ngrok-free.dev/webhook/crm-enviar'; // workflow de n8n "CRM - Enviar mensaje"
+const WEBHOOK_ENVIAR = 'https://n8n-rtyx.srv2087793.hstgr.cloud/webhook/crm-enviar'; // workflow de n8n "CRM - Enviar mensaje"
 const SUPABASE_KEY = 'sb_publishable_CheOYNpuoS0tG2bqhqULsg_koJ2wqfn'; // clave publishable (es pública por diseño)
 /* ================================================================================================ */
 
@@ -511,7 +511,7 @@ async function enviarMensaje(){
   try{
     if(!DEMO){
       const {data} = await db.auth.getSession(), token = data.session?.access_token;
-      const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'ngrok-skip-browser-warning':'1'}, body:JSON.stringify({telefono:chatCtx.ident, texto, asesor:nombreAsesor()})});
+      const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({telefono:chatCtx.ident, texto, asesor:nombreAsesor()})});
       if(r.status===401) throw new Error('sesión no válida, volvé a ingresar');
       if(!r.ok) throw new Error('el servidor respondió ' + r.status);
     }
@@ -959,7 +959,7 @@ document.addEventListener('click', async e => {
     try{
       if(!DEMO){
         const {data} = await db.auth.getSession(), token = data.session?.access_token;
-        const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'ngrok-skip-browser-warning':'1'}, body:JSON.stringify({telefono:ident, texto, asesor:nombreAsesor()})});
+        const r = await fetch(WEBHOOK_ENVIAR, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({telefono:ident, texto, asesor:nombreAsesor()})});
         if(r.status===401) throw new Error('sesión no válida, volvé a ingresar');
         if(!r.ok) throw new Error('el servidor respondió ' + r.status);
       }

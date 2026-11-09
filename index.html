@@ -288,6 +288,23 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 .btn.chico{padding:4px 10px;font-size:13px;white-space:nowrap}
 @media (max-width:560px){.marca b{font-size:28px}.kpi .n{font-size:38px}header .quien{margin-left:0;width:100%}}
 @media (prefers-reduced-motion:no-preference){.vista{animation:ent .25s ease}@keyframes ent{from{opacity:.0;transform:translateY(4px)}to{opacity:1;transform:none}}}
+
+/* --- v22: indicadores del panel y filtros de consultas --- */
+.rango{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rango .btn.activo{background:var(--amarillo);color:#1a1a00;border-color:var(--amarillo)}
+.kpis.chicos .kpi .n{font-size:34px}
+.kpis.chicos .kpi{padding:14px 16px}
+.dias{display:flex;align-items:flex-end;gap:3px;height:150px}
+.dias .d{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.dias .d i{display:block;width:100%;border-radius:3px 3px 0 0;background:var(--verde-3);min-height:2px}
+.dias .d.hoy i{background:var(--amarillo)}
+.dias .d span{font-size:10px;color:var(--apagado);white-space:nowrap;height:12px}
+.dias .d em{font-style:normal;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;height:12px}
+.rank.ancho .fila-r{grid-template-columns:150px 1fr auto}
+.aviso-sql{color:var(--apagado);font-size:13px;line-height:1.5}
+.aviso-sql code{background:#00000030;padding:1px 6px;border-radius:4px}
+.contador{color:var(--apagado);font-size:13px}
+@media (max-width:560px){.rank.ancho .fila-r{grid-template-columns:110px 1fr auto}.dias{gap:2px}}
 </style>
 </head>
 <body>
@@ -361,6 +378,7 @@ const fmtTs = t => { const d = new Date(t); return d.toLocaleDateString('es-PY',
 const waLink = tel => `https://wa.me/${String(tel).replace(/\D/g,'')}`;
 
 let db = null, D = {contactos:[],consultas:[],turnos:[],perfiles:[],tareas:[],ind:{total_leads:0,leads_calificados:0,ventas_agendadas:0}};
+let fPanel = '30', fConsBusca = '', fConsDesde = '', fConsHasta = '', fConsMedida = '', fConsPais = '', fConsOrden = 'recientes', MSG_OK = false;
 let fCalTareas = null, UID = null, EMAIL = '', ROLES_OK = true, fAsig = 'todos', fTareas = null, fTareaOp = 'todos';
 const perfilDe = id => D.perfiles.find(p => p.user_id===id);
 const yo = () => perfilDe(UID) || {rol:'operador', nombre:''};
@@ -407,7 +425,9 @@ function demoData(){
     {id:2,titulo:'Confirmar la visita de mañana con Lucía Ferreira',detalle:null,asignado_a:'u2',creada_por:'u1',vence:d(1),estado:'pendiente',creada:new Date().toISOString(),hecha_en:null},
     {id:3,titulo:'Avisar a quienes pidieron 255/55R19',detalle:null,asignado_a:'u2',creada_por:'u1',vence:d(-1),estado:'pendiente',creada:new Date().toISOString(),hecha_en:null},
     {id:4,titulo:'Cargar el monto de la venta de Lucía',detalle:null,asignado_a:'u3',creada_por:'u1',vence:null,estado:'hecha',creada:new Date().toISOString(),hecha_en:new Date().toISOString()}];
-  return {contactos,consultas,turnos,perfiles,tareas,ind:{total_leads:4,leads_calificados:3,ventas_agendadas:2}};
+  const msgdia = []; for(let n=0;n<40;n++){ const x = new Date(); x.setDate(x.getDate()-n); const base = [14,22,9,31,18,26,12][n%7] + (n%5)*2; msgdia.push({dia:`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`, recibidos:base, enviados:base+3, conversaciones:Math.max(2,Math.round(base/4))}); }
+  MSG_OK = true;
+  return {contactos,consultas,turnos,perfiles,tareas,msgdia,ind:{total_leads:4,leads_calificados:3,ventas_agendadas:2}};
 }
 async function cargar(){
   $('#msg').textContent = '';
@@ -423,7 +443,9 @@ async function cargar(){
     db.from('perfiles').select('*').order('nombre'),
     db.from('tareas').select('*').order('creada',{ascending:false}).limit(1000)]);
   ROLES_OK = !pf.error && !tr.error;
-  D = {contactos:c.data, consultas:q.data, turnos:t.data, perfiles:pf.error ? [] : pf.data, tareas:tr.error ? [] : tr.data, ind:i.data};
+  const md = await db.from('mensajes_por_dia').select('*').order('dia',{ascending:false}).limit(400);
+  MSG_OK = !md.error;
+  D = {contactos:c.data, consultas:q.data, turnos:t.data, perfiles:pf.error ? [] : pf.data, tareas:tr.error ? [] : tr.data, msgdia:md.error ? [] : md.data, ind:i.data};
 }
 async function actualizar(tabla, id, campos){
   if(DEMO){ const fila = D[tabla].find(x => x.id===id); Object.assign(fila, campos); return; }
@@ -497,6 +519,11 @@ function resumenHTML(c){
 document.addEventListener('click', e => {
   const ctb = e.target.closest('[data-ctab]'); if(ctb){ chatTab = ctb.dataset.ctab; return renderChat(); }
   const pr = e.target.closest('[data-perd-rango]'); if(pr){ rangoPerdidos(pr.dataset.perdRango); return pintar(); }
+  const pp = e.target.closest('[data-panel-rango]'); if(pp){ fPanel = pp.dataset.panelRango; return pintar(); }
+  const cr = e.target.closest('[data-cons-rango]'); if(cr){ rangoConsultas(cr.dataset.consRango); return pintar(); }
+  if(e.target.closest('[data-cons-limpiar]')){ limpiarFiltrosCons(); return pintar(); }
+  if(e.target.closest('[data-ver-archivadas]')){ e.preventDefault(); fConsulta = 'archivadas'; return pintar(); }
+  if(e.target.closest('[data-cons-csv]')) return exportarConsultas();
   const rc = e.target.closest('[data-recuperar]'); if(rc) return moverConsulta(Number(rc.dataset.recuperar), 'abierta');
   const mt = e.target.closest('[data-monto]'); if(mt) return pedirMonto(Number(mt.dataset.monto), false);
   const mo = e.target.closest('[data-modo]'); if(mo){ modoAgenda = mo.dataset.modo; return pintar(); }
@@ -600,6 +627,11 @@ function bloqueIngresos(){
 const ETQ_SUG = ['Mayorista','Minorista','Flota','Taller','Cliente frecuente'];
 let fEtq = 'todas', etqId = null, tareaPre = null;
 const ctDeId = id => D.contactos.find(x => x.id===id);
+/* Archivo automático: una consulta 'abierta' cuyo cliente no escribe hace más de DIAS_ARCHIVO días sale de las listas de trabajo.
+   No se toca la base: si el cliente vuelve a escribir (ultimo_contacto), reaparece sola. */
+const DIAS_ARCHIVO = 5;
+const diasSinRespuesta = q => { const ct = ctDeId(q.contacto_id); return Math.floor((Date.now() - new Date(ct?.ultimo_contacto || q.creada).getTime()) / 864e5); };
+const archivada = q => q.estado==='abierta' && diasSinRespuesta(q) > DIAS_ARCHIVO;
 const etqsDe = ct => Array.isArray(ct?.etiquetas) ? ct.etiquetas : [];
 const esMay = t => /mayorista/i.test(t);
 const chipsEtq = ct => { const l = etqsDe(ct); return l.length ? `<span class="etqs">${l.map(t => `<span class="chip-e${esMay(t)?' may':''}">${esc(t)}</span>`).join('')}</span>` : ''; };
@@ -756,11 +788,75 @@ document.addEventListener('click', e => {
   const r = e.target.closest('[data-tarea-reabrir]'); if(r) return cambiarTarea(Number(r.dataset.tareaReabrir), {estado:'pendiente', hecha_en:null});
   const d = e.target.closest('[data-tarea-del]'); if(d) return borrarTarea(Number(d.dataset.tareaDel));
 });
+
+/* ---------- Panel: actividad del período ---------- */
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function rangoPanel(k){
+  const hoy = new Date(), ant = n => { const d = new Date(); d.setDate(d.getDate()-n); return d; };
+  if(k==='hoy') return {desde:ymd(hoy), hasta:ymd(hoy)};
+  if(k==='7') return {desde:ymd(ant(6)), hasta:ymd(hoy)};
+  if(k==='30') return {desde:ymd(ant(29)), hasta:ymd(hoy)};
+  if(k==='mes') return {desde:ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), hasta:ymd(hoy)};
+  return {desde:'', hasta:''};
+}
+const dentro = (iso, r) => { if(!iso) return false; const f = fechaLocal(iso); return (!r.desde || f>=r.desde) && (!r.hasta || f<=r.hasta); };
+const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+function listaDias(r){
+  let desde = r.desde, hasta = r.hasta || ymd(new Date());
+  if(!desde){ const d = new Date(); d.setDate(d.getDate()-29); desde = ymd(d); }
+  const out = [], d = new Date(desde+'T12:00:00'), fin = new Date(hasta+'T12:00:00');
+  while(d<=fin && out.length<62){ out.push(ymd(d)); d.setDate(d.getDate()+1); }
+  return out;
+}
+function graficoDias(dias, valor, tit){
+  const max = Math.max(...dias.map(valor), 1), h = ymd(new Date()), cada = dias.length>20 ? 5 : dias.length>10 ? 2 : 1;
+  return `<div class="dias" role="img" aria-label="${esc(tit)}">${dias.map((f,i) => { const v = valor(f); return `<div class="d${f===h?' hoy':''}" title="${esc(fmtFecha(f))}: ${v}"><em>${dias.length<=14 && v ? v : ''}</em><i style="height:${Math.max(2, Math.round(v/max*100))}px"></i><span>${i%cada===0 || f===h ? f.slice(8)+'/'+f.slice(5,7) : ''}</span></div>`; }).join('')}</div>`;
+}
+function bloqueActividad(){
+  const r = rangoPanel(fPanel), dias = listaDias(r);
+  const cons = D.consultas.filter(q => dentro(q.creada, r));
+  const nuevos = D.contactos.filter(c => dentro(c.primer_contacto, r));
+  const idsNuevos = new Set(nuevos.map(c => c.id));
+  const calif = new Set(D.consultas.filter(q => q.lead_calificado && idsNuevos.has(q.contacto_id)).map(q => q.contacto_id));
+  const msgPorDia = new Map((D.msgdia||[]).map(x => [String(x.dia).slice(0,10), x]));
+  const msgs = (D.msgdia||[]).filter(x => (!r.desde || String(x.dia).slice(0,10)>=r.desde) && (!r.hasta || String(x.dia).slice(0,10)<=r.hasta)).reduce((a,x) => a + Number(x.recibidos||0), 0);
+  const calificadas = cons.filter(q => q.lead_calificado), idsCalif = new Set(calificadas.map(q => q.id));
+  const agendadas = new Set(D.turnos.filter(t => idsCalif.has(t.consulta_id) && !['cancelado','no_vino'].includes(t.estado)).map(t => t.consulta_id)).size;
+  const cerradas = calificadas.filter(q => q.estado==='cerrada').length;
+  const perdidas = cons.filter(q => q.estado==='perdida').length;
+  const derivadas = cons.filter(q => q.estado==='derivada').length, mayoristas = cons.filter(q => q.estado==='mayorista').length;
+  const nDias = r.desde ? dias.length : Math.max(1, Math.ceil((Date.now() - Math.min(Date.now(), ...D.contactos.map(c => new Date(c.primer_contacto).getTime()))) / 864e5));
+  const porMedida = {}; cons.forEach(q => { if(q.medida){ const o = porMedida[q.medida] = porMedida[q.medida] || {n:0,u:0}; o.n++; o.u += Number(q.cantidad)||0; } });
+  const rank = Object.entries(porMedida).sort((a,b) => b[1].n-a[1].n || b[1].u-a[1].u).slice(0,6), maxR = rank.length ? rank[0][1].n : 1;
+  const embudo = [['Contactos nuevos', nuevos.length], ['Calificados', calif.size], ['Consultas calificadas', calificadas.length], ['Visita agendada', agendadas], ['Venta cerrada', cerradas]], maxE = Math.max(...embudo.map(x => x[1]), 1);
+  const btn = [['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes'],['todo','Todo']].map(([k,t]) => `<button class="btn sec chico${fPanel===k?' activo':''}" type="button" data-panel-rango="${k}">${t}</button>`).join('');
+  const sinMsg = `<div class="aviso-sql">Todavía no se registra la fecha de los mensajes. Ejecutá <code>permisos_mensajes.sql</code> en Supabase y desde ese momento este gráfico empieza a llenarse.</div>`;
+  const hayMsg = MSG_OK && (D.msgdia||[]).length;
+  return `<div class="fila" style="margin:4px 0 12px"><h2 style="font-size:20px">Actividad</h2><div class="rango">${btn}</div></div>
+  <div class="kpis chicos">
+    <div class="kpi"><div class="etq">Mensajes recibidos</div><div class="n">${hayMsg ? msgs : '—'}</div><small>${hayMsg ? `Promedio ${ (msgs/nDias).toFixed(1).replace('.',',') } por día` : 'Falta registrar la fecha'}</small></div>
+    <div class="kpi"><div class="etq">Contactos nuevos</div><div class="n">${nuevos.length}</div><small>Personas que escribieron por primera vez</small></div>
+    <div class="kpi dest"><div class="etq">Tasa de calificación</div><div class="n">${pct(calif.size, nuevos.length)}%</div><small>${calif.size} calificados de ${nuevos.length} contactos nuevos</small></div>
+    <div class="kpi"><div class="etq">Mensajes por calificado</div><div class="n">${hayMsg && calif.size ? Math.round(msgs/calif.size) : '—'}</div><small>${hayMsg && msgs ? `${(calif.size/msgs*100).toFixed(1).replace('.',',')}% de calificados sobre el total de mensajes` : 'Mensajes que hacen falta para calificar uno'}</small></div>
+    <div class="kpi"><div class="etq">Agendadas / calificadas</div><div class="n">${pct(agendadas, calificadas.length)}%</div><small>${agendadas} de ${calificadas.length} consultas calificadas</small></div>
+    <div class="kpi"><div class="etq">Cerradas / calificadas</div><div class="n">${pct(cerradas, calificadas.length)}%</div><small>${cerradas} ${cerradas===1?'venta':'ventas'} de ${calificadas.length} calificadas</small></div>
+    <div class="kpi"><div class="etq">Necesitan asesor</div><div class="n">${derivadas}</div><small>${pct(derivadas, cons.length)}% de las consultas · ${mayoristas} mayorista${mayoristas===1?'':'s'}</small></div>
+    <div class="kpi"><div class="etq">Perdidas</div><div class="n">${perdidas}</div><small>${pct(perdidas, cons.length)}% de las consultas del período</small></div>
+  </div>
+  <div class="dos" style="margin-bottom:20px">
+    <div class="panel"><h3>Mensajes recibidos por día</h3>${hayMsg ? graficoDias(dias, f => Number(msgPorDia.get(f)?.recibidos||0), 'Mensajes recibidos por día') : sinMsg}</div>
+    <div class="panel"><h3>Contactos nuevos por día</h3>${graficoDias(dias, f => nuevos.filter(c => fechaLocal(c.primer_contacto)===f).length, 'Contactos nuevos por día')}</div>
+  </div>
+  <div class="dos" style="margin-bottom:28px">
+    <div class="panel"><h3>Embudo del período</h3><div class="rank ancho">${embudo.map(([t,n]) => `<div class="fila-r"><span>${t}</span><div class="barra"><i style="width:${Math.round(n/maxE*100)}%"></i></div><span class="cnt">${n}</span></div>`).join('')}</div></div>
+    <div class="panel"><h3>Medidas más pedidas</h3>${rank.length ? `<div class="rank">${rank.map(([m,o]) => `<div class="fila-r"><span class="medida">${esc(m)}</span><div class="barra"><i style="width:${Math.round(o.n/maxR*100)}%"></i></div><span class="cnt">${o.n} ${o.n===1?'pedido':'pedidos'} <small>${o.u ? '· '+o.u+' u.' : ''}</small></span></div>`).join('')}</div>` : '<div class="vacio">Sin pedidos en este período.</div>'}</div>
+  </div>`;
+}
 function vPanel(){
   const h = hoyStr(), i = D.ind;
   const hoy = D.turnos.filter(t => t.fecha===h && !['cancelado','no_vino'].includes(t.estado));
   const prox = D.turnos.filter(t => t.fecha>h && !['cancelado','no_vino'].includes(t.estado)).slice(0,5);
-  const abiertas = D.consultas.filter(q => ['abierta','derivada','mayorista'].includes(q.estado)).slice(0,6);
+  const abiertas = D.consultas.filter(q => ['abierta','derivada','mayorista'].includes(q.estado) && !archivada(q)).slice(0,6);
   const conv = i.leads_calificados ? Math.round(i.ventas_agendadas/i.leads_calificados*100) : 0;
   return `<section class="vista">
   <div class="kpis">
@@ -769,6 +865,7 @@ function vPanel(){
     <div class="kpi dest"><div class="etq">Ventas agendadas</div><div class="n">${esc(i.ventas_agendadas)}</div><small>${conv}% de los calificados</small></div>
     <div class="kpi"><div class="etq">Perdidos por stock</div><div class="n">${D.consultas.filter(q => q.estado==='perdida' && q.motivo_perdida==='sin_stock').length}</div><small>Pedidos de medidas sin stock</small></div>
   </div>
+  ${bloqueActividad()}
   ${bloqueMisTareas()}
   ${bloqueIngresos()}
   <div class="dos">
@@ -793,20 +890,60 @@ function vAgenda(){
   return `<section class="vista"><div class="fila"><h2>Agenda</h2><div class="filtros">${toggleAgenda()}<select id="f-agenda" aria-label="Filtrar turnos"><option value="proximos">Próximos</option>${['todos',...ESTADOS_TURNO].map(e => `<option value="${e}">${e.replace('_',' ')}</option>`).join('')}</select></div></div>
   <div class="tabla"><table><thead><tr><th>Fecha y hora</th><th>Cliente</th><th>Pedido</th><th>Modalidad</th><th>Total</th><th>Observaciones</th><th>Chat</th><th>Estado</th></tr></thead><tbody>${filas || '<tr><td colspan="8" class="vacio">No hay turnos con este filtro.</td></tr>'}</tbody></table></div></section>`;
 }
-function vConsultas(){
+
+/* ---------- Consultas: filtros ---------- */
+function consultasFiltradas(ignorarMedida){
+  const toks = String(fConsBusca||'').trim().split(/\s+/).map(claveBusq).filter(Boolean);
   let l = D.consultas.filter(pasaAsig);
-  if(fConsulta==='calificadas') l = l.filter(q => q.lead_calificado);
-  else if(fConsulta!=='todas') l = l.filter(q => q.estado===fConsulta);
+  if(fConsulta==='archivadas') l = l.filter(archivada);
+  else {
+    if(!(fConsulta==='todas' && toks.length)) l = l.filter(q => !archivada(q));   /* al buscar texto se incluyen las archivadas */
+    if(fConsulta==='calificadas') l = l.filter(q => q.lead_calificado);
+    else if(fConsulta!=='todas') l = l.filter(q => q.estado===fConsulta);
+  }
+  if(fConsDesde) l = l.filter(q => fechaLocal(q.creada) >= fConsDesde);
+  if(fConsHasta) l = l.filter(q => fechaLocal(q.creada) <= fConsHasta);
+  if(fConsPais) l = l.filter(q => (q.contactos?.pais || 'Sin país')===fConsPais);
+  if(toks.length) l = l.filter(q => { const c = q.contactos ?? {}, ct = ctDeId(q.contacto_id);
+    const pajar = claveBusq([q.medida, q.modelo, q.cantidad, c.nombre, c.identificador, c.pais, q.notas, q.estado, q.lead_calificado ? 'calificado' : '', ...etqsDe(ct)].join(' '));
+    return toks.every(t => pajar.includes(t)); });
+  if(!ignorarMedida && fConsMedida) l = l.filter(q => (q.medida || 'Sin medida')===fConsMedida);
+  return l;
+}
+function rangoConsultas(k){ const r = rangoPanel(k); fConsDesde = r.desde; fConsHasta = r.hasta; }
+const hayFiltrosCons = () => fConsulta!=='todas' || fAsig!=='todos' || fConsBusca || fConsDesde || fConsHasta || fConsMedida || fConsPais || fConsOrden!=='recientes';
+function limpiarFiltrosCons(){ fConsulta = 'todas'; fAsig = 'todos'; fConsBusca = ''; fConsDesde = ''; fConsHasta = ''; fConsMedida = ''; fConsPais = ''; fConsOrden = 'recientes'; }
+function exportarConsultas(){
+  const l = consultasFiltradas(false).sort((a,b) => fConsOrden==='recientes' ? new Date(b.creada)-new Date(a.creada) : new Date(a.creada)-new Date(b.creada));
+  const celda = v => { const t = String(v ?? '').replace(/\r?\n/g,' '); return /[",;]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t; };
+  const nombreAsig = id => (D.perfiles.find(p => p.user_id===id)||{}).nombre || '';
+  const filas = [['Fecha','Cliente','Teléfono','País','Cantidad','Medida','Modelo','Calificado','Estado','Asignado a','Notas']].concat(l.map(q => { const c = q.contactos ?? {};
+    return [fechaLocal(q.creada), c.nombre||'', c.identificador||'', c.pais||'', q.cantidad||'', q.medida||'', q.modelo||'', q.lead_calificado?'Sí':'No', q.estado||'', nombreAsig(q.asignado_a), q.notas||'']; }));
+  const blob = new Blob(['﻿'+filas.map(f => f.map(celda).join(';')).join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `consultas_${hoyStr()}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function vConsultas(){
+  const sinMedida = consultasFiltradas(true), cuentaMed = {}; sinMedida.forEach(q => { const k = q.medida || 'Sin medida'; cuentaMed[k] = (cuentaMed[k]||0) + 1; });
+  if(fConsMedida && !cuentaMed[fConsMedida]) fConsMedida = '';
+  const paises = [...new Set(D.consultas.map(q => q.contactos?.pais || 'Sin país'))].sort();
+  const l = consultasFiltradas(false).sort((a,b) => fConsOrden==='recientes' ? new Date(b.creada)-new Date(a.creada) : new Date(a.creada)-new Date(b.creada));
   const filas = l.map(q => { const c = q.contactos ?? {}; return `<tr>
     <td class="num">${fmtTs(q.creada)}</td>
     <td>${esc(c.nombre||'Sin nombre')}${chipsEtq(ctDeId(q.contacto_id))}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
     <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
     <td>${q.lead_calificado ? '<span class="pill p-confirmado">calificado</span>' : '<span class="sub">—</span>'}</td>
-    <td><select data-t="consultas" data-id="${q.id}" data-c="estado" aria-label="Estado de la consulta">${ESTADOS_CONSULTA.map(e => `<option value="${e}" ${e===q.estado?'selected':''}>${e}</option>`).join('')}</select><span class="guardado" hidden>✓</span></td>
+    <td><select data-t="consultas" data-id="${q.id}" data-c="estado" aria-label="Estado de la consulta">${ESTADOS_CONSULTA.map(e => `<option value="${e}" ${e===q.estado?'selected':''}>${e}</option>`).join('')}</select><span class="guardado" hidden>✓</span>${archivada(q) ? `<div class="sub" style="margin-top:4px">Archivada · sin respuesta hace ${diasSinRespuesta(q)} días</div>` : ''}</td>
     <td>${asigCtl(q)}</td>
     <td>${btnChat(c)}</td>
     <td><input type="text" data-t="consultas" data-id="${q.id}" data-c="notas" value="${esc(q.notas||'')}" placeholder="Agregar nota" aria-label="Nota" style="width:100%;min-width:180px"><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
-  return `<section class="vista"><div class="fila"><h2>Consultas</h2><div class="filtros"><select id="f-consulta" aria-label="Filtrar consultas"><option value="todas">Todas</option><option value="calificadas">Calificadas</option>${ESTADOS_CONSULTA.map(e => `<option value="${e}">${e}</option>`).join('')}</select>${selAsig()}</div></div>
+  const rangos = [['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes'],['todo','Todo']].map(([k,t]) => `<button class="btn sec chico" type="button" data-cons-rango="${k}">${t}</button>`).join('');
+  return `<section class="vista"><div class="fila"><h2>Consultas <span class="sub">(${l.length}${l.length!==D.consultas.length ? ' de '+D.consultas.length : ''})</span></h2><div class="filtros"><input type="search" id="cons-busca" value="${esc(fConsBusca)}" placeholder="Buscar cliente, medida o nota" aria-label="Buscar en consultas" style="min-width:280px"><select id="f-consulta" aria-label="Filtrar consultas"><option value="todas">Todas</option><option value="calificadas">Calificadas</option>${ESTADOS_CONSULTA.map(e => `<option value="${e}">${e}</option>`).join('')}<option value="archivadas">Archivadas (${D.consultas.filter(archivada).length})</option></select>${selAsig()}
+    <select id="f-cons-medida" aria-label="Filtrar por medida"><option value="">Todas las medidas</option>${Object.entries(cuentaMed).sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).map(([m,n]) => `<option value="${esc(m)}" ${m===fConsMedida?'selected':''}>${esc(m)} (${n})</option>`).join('')}</select>
+    ${paises.length>1 ? `<select id="f-cons-pais" aria-label="Filtrar por país"><option value="">Todos los países</option>${paises.map(p => `<option value="${esc(p)}" ${p===fConsPais?'selected':''}>${esc(p)}</option>`).join('')}</select>` : ''}</div></div>
+  <div class="fila" style="margin-top:-6px"><div class="filtros" style="align-items:center"><label class="sub" style="display:flex;gap:6px;align-items:center">Desde<input type="date" id="f-cons-desde" value="${esc(fConsDesde)}" max="${esc(fConsHasta)}"></label><label class="sub" style="display:flex;gap:6px;align-items:center">Hasta<input type="date" id="f-cons-hasta" value="${esc(fConsHasta)}" min="${esc(fConsDesde)}"></label>${rangos}
+    <select id="f-cons-orden" aria-label="Ordenar"><option value="recientes" ${fConsOrden==='recientes'?'selected':''}>Más recientes primero</option><option value="antiguas" ${fConsOrden==='antiguas'?'selected':''}>Más antiguas primero</option></select>
+    ${hayFiltrosCons() ? '<button class="btn sec chico" type="button" data-cons-limpiar="1">Limpiar filtros</button>' : ''}<button class="btn sec chico" type="button" data-cons-csv="1">Exportar CSV</button></div></div>
+  <div class="contador" style="margin:-4px 0 12px">${fConsulta==='archivadas' ? `Mostrando las consultas abiertas cuyo cliente no escribe hace más de ${DIAS_ARCHIVO} días. Si el cliente vuelve a escribir, reaparece sola en la lista normal.` : (() => { const n = D.consultas.filter(archivada).length; return n ? `${n} ${n===1?'consulta archivada':'consultas archivadas'} por no responder hace más de ${DIAS_ARCHIVO} días. <a href="#" data-ver-archivadas="1" style="color:var(--amarillo)">Ver archivadas</a>` : ''; })()}</div>
   <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Pedido</th><th>Lead</th><th>Estado</th><th>Asignado</th><th>Chat</th><th>Notas</th></tr></thead><tbody>${filas || '<tr><td colspan="8" class="vacio">No hay consultas con este filtro.</td></tr>'}</tbody></table></div></section>`;
 }
 function vContactos(){
@@ -844,10 +981,10 @@ function vPipeline(){
   const cols = ETAPAS.map(e => {
     const items = e.k==='nuevo'
       ? (fAsig!=='todos' ? [] : nuevos).map(c => `<article class="tarjeta" draggable="true" data-contacto="${c.id}"><b>${esc(c.nombre||'Sin nombre')}</b>${chipsEtq(c)}<span class="sub">${esc(c.identificador)} · escribió ${fmtTs(c.primer_contacto)}</span><div class="acc">${btnChat(c)}<select data-mover-c="${c.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo').map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div></article>`)
-      : D.consultas.filter(q => q.estado===e.k && pasaAsig(q)).map(tarjetaConsulta);
+      : D.consultas.filter(q => q.estado===e.k && pasaAsig(q) && !archivada(q)).map(tarjetaConsulta);
     return `<div class="col" data-etapa="${e.k}" style="--c:${e.c}"><h3><span class="pt"></span>${e.t}<span class="ct">${items.length}</span></h3>${items.join('') || '<div class="vacio-col">Sin elementos</div>'}</div>`;
   }).join('');
-  return `<section class="vista"><div class="fila"><h2>Pipeline</h2><span class="sub">Arrastrá una tarjeta a otra columna o usá "Mover a…" para cambiar la etapa.</span><div class="filtros">${selAsig()}</div></div><div class="tablero">${cols}</div></section>`;
+  return `<section class="vista"><div class="fila"><h2>Pipeline</h2><span class="sub">Arrastrá una tarjeta a otra columna o usá "Mover a…" para cambiar la etapa.${D.consultas.some(archivada) ? ` · ${D.consultas.filter(archivada).length} ${D.consultas.filter(archivada).length===1?'archivada':'archivadas'} por inactividad (en Consultas)` : ''}</span><div class="filtros">${selAsig()}</div></div><div class="tablero">${cols}</div></section>`;
 }
 async function moverContacto(contactoId, etapa){
   const c = D.contactos.find(x => x.id===contactoId); if(!c) return;
@@ -1046,7 +1183,7 @@ function notificaciones(){
   if(der) l.push({n:der, nivel:'alta', titulo:`${der} ${der===1?'cliente necesita':'clientes necesitan'} un asesor`, sub:'Esperan que los atiendas', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
   const may = D.consultas.filter(q => q.estado==='mayorista' && mio(q)).length;
   if(may) l.push({n:may, nivel:'alta', titulo:`${may} ${may===1?'cliente mayorista':'clientes mayoristas'} para atender`, sub:'Requieren condiciones y precio de mayorista', ir:'pipeline', asig: conRoles ? 'mias' : 'todos'});
-  const abi = conRoles ? D.consultas.filter(q => q.estado==='abierta' && q.asignado_a===UID).length : 0;
+  const abi = conRoles ? D.consultas.filter(q => q.estado==='abierta' && q.asignado_a===UID && !archivada(q)).length : 0;
   if(abi) l.push({n:abi, nivel:'media', titulo:`${abi} ${abi===1?'lead con interés tuyo':'leads con interés tuyos'}`, sub:'Para seguir y cerrar', ir:'pipeline', asig:'mias'});
   const tur = D.turnos.filter(t => t.fecha===h && !['cancelado','no_vino','realizado'].includes(t.estado) && (!conRoles || esSup() || D.consultas.find(q => q.id===t.consulta_id)?.asignado_a===UID)).length;
   if(tur) l.push({n:tur, nivel:'media', titulo:`${tur} ${tur===1?'visita agendada':'visitas agendadas'} para hoy`, sub:'Revisá la agenda', ir:'agenda'});
@@ -1112,7 +1249,7 @@ function pintar(){
   const nT = misPendientes().length, tb = document.querySelector('#tabs [data-v="tareas"]'); if(tb) tb.textContent = nT ? `Tareas (${nT})` : 'Tareas';
   renderNotif();
   $('#usuario').textContent = D.perfiles.length ? `${yo().nombre || EMAIL} · ${esSup() ? 'Supervisor' : 'Operador'}` : EMAIL;
-  if(foco==='busca' || foco==='perd-busca'){ const i = $('#'+foco); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
+  if(foco==='busca' || foco==='perd-busca' || foco==='cons-busca'){ const i = $('#'+foco); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 }
 
 /* ---------- Eventos ---------- */
@@ -1135,6 +1272,11 @@ $('#main').addEventListener('change', async e => {
   if(el.dataset.mover){ const v = el.value; el.value = ''; if(v) moverConsulta(Number(el.dataset.mover), v); return; }
   if(el.id==='f-agenda'){ fAgenda = el.value; return pintar(); }
   if(el.id==='f-consulta'){ fConsulta = el.value; return pintar(); }
+  if(el.id==='f-cons-medida'){ fConsMedida = el.value; return pintar(); }
+  if(el.id==='f-cons-pais'){ fConsPais = el.value; return pintar(); }
+  if(el.id==='f-cons-desde'){ fConsDesde = el.value; return pintar(); }
+  if(el.id==='f-cons-hasta'){ fConsHasta = el.value; return pintar(); }
+  if(el.id==='f-cons-orden'){ fConsOrden = el.value; return pintar(); }
   if(el.id==='f-perdidos'){ fPerdidos = el.value; return pintar(); }
   if(el.id==='f-perd-medida'){ fPerdMedida = el.value; return pintar(); }
   if(el.id==='f-perd-desde'){ fPerdDesde = el.value; return pintar(); }
@@ -1149,7 +1291,7 @@ $('#main').addEventListener('change', async e => {
     }catch(err){ $('#msg').textContent = 'No se pudo guardar: ' + (err.message||err); }
   }
 });
-$('#main').addEventListener('input', e => { if(e.target.id==='busca'){ busca = e.target.value; pintar(); } else if(e.target.id==='perd-busca'){ fPerdBusca = e.target.value; pintar(); } });
+$('#main').addEventListener('input', e => { if(e.target.id==='busca'){ busca = e.target.value; pintar(); } else if(e.target.id==='perd-busca'){ fPerdBusca = e.target.value; pintar(); } else if(e.target.id==='cons-busca'){ fConsBusca = e.target.value; pintar(); } });
 async function recargar(repintar=true){
   try{
     const antes = new Set(misPendientes().map(t => t.id));

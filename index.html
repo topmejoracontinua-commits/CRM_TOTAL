@@ -278,6 +278,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 .burbuja.bot small{color:#7fe3c1}
 .burbuja.ase{background:#4a4318;border:0;border-radius:14px 4px 14px 14px}
 .burbuja small{margin-bottom:2px}
+.foto-chat{display:block;max-width:100%;max-height:300px;border-radius:8px;margin:3px 0 6px;cursor:zoom-in;object-fit:cover;background:#0000001f;min-height:60px}
 .cajon .pie{background:#0b1a14;border-top:0;padding:6px 10px calc(10px + env(safe-area-inset-bottom,0px));gap:8px}
 .rapidas{display:flex;gap:6px;flex-wrap:wrap}
 .rapidas button{font:500 12px var(--f-body);padding:6px 10px;border-radius:999px;border:1px solid var(--amarillo);background:transparent;color:var(--amarillo);cursor:pointer}
@@ -477,9 +478,38 @@ async function abrirChat(ident, nombre, tab='conv'){
 const nombreAsesor = () => (yo().nombre || EMAIL.split('@')[0] || 'Asesor').replace(/[\[\]\r\n]/g,'').trim().slice(0,40) || 'Asesor';
 /* Mensajes del equipo: se guardan como "[Asesor:Nombre] texto" (los viejos: "[Asesor] texto") */
 const RE_ASESOR = /^\[Asesor(?::([^\]]*))?\]\s*/;
+/* Fotos del cliente: el bot guarda "[IMG:foto/ID]" en el mensaje; la imagen está en la tabla fotos_chat (base64) */
+const RE_IMG = /\[IMG:([^\]\s]+)\]/;
+const sinImg = t => String(t||'').replace(RE_IMG,'').trim();
+const urlsImg = {};
+async function urlImagen(path){
+  if(DEMO) return null;
+  if(urlsImg[path]) return urlsImg[path];
+  const m = path.match(/^foto\/(\d+)$/);
+  if(m){
+    const {data, error} = await db.from('fotos_chat').select('mime,data').eq('id', m[1]).maybeSingle();
+    if(error || !data) return null;
+    const bin = atob(data.data), arr = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+    return urlsImg[path] = URL.createObjectURL(new Blob([arr], {type: data.mime || 'image/jpeg'}));
+  }
+  const i = path.indexOf('/'); if(i<1) return null;
+  const {data, error} = await db.storage.from(path.slice(0,i)).createSignedUrl(path.slice(i+1), 3600);
+  if(error || !data) return null;
+  return urlsImg[path] = data.signedUrl;
+}
+async function cargarImagenes(cu){
+  for(const im of cu.querySelectorAll('img[data-img]')){
+    const u = await urlImagen(im.dataset.img);
+    if(u){ im.onload = () => { cu.scrollTop = cu.scrollHeight; }; im.src = u; }
+    else im.replaceWith(Object.assign(document.createElement('div'), {className:'sub', textContent:'(no se pudo cargar la foto)'}));
+  }
+}
+document.addEventListener('click', e => { const im = e.target.closest && e.target.closest('.foto-chat'); if(im && im.src) window.open(im.src, '_blank', 'noopener'); });
 function burbuja(x, c){
-  const bot = x.message.type==='ai', txt = textoMsg(x.message), a = bot ? txt.match(RE_ASESOR) : null, ase = !!a;
-  return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}</div>`;
+  const bot = x.message.type==='ai', raw = textoMsg(x.message), im = raw.match(RE_IMG), txt = sinImg(raw), a = bot ? txt.match(RE_ASESOR) : null, ase = !!a;
+  const foto = im ? `<img class="foto-chat" data-img="${esc(im[1])}" alt="Foto enviada por el cliente">` : '';
+  return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${foto}${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}</div>`;
 }
 function renderChat(){
   const c = chatCtx, cu = $('#chat-cuerpo'), num = String(c.ident).replace(/\D/g,'');
@@ -489,13 +519,14 @@ function renderChat(){
   if(c.error){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(c.error)}. Ejecutá permisos_chat.sql en Supabase.</div>`; return; }
   cu.innerHTML = c.msgs.length ? c.msgs.map(x => burbuja(x, c)).join('') : '<div class="vacio">No hay mensajes guardados para este contacto.</div>';
   cu.scrollTop = cu.scrollHeight;
+  cargarImagenes(cu);
 }
 function resumenHTML(c){
   const ct = D.contactos.find(x => x.identificador===c.ident) || {};
   const qs = D.consultas.filter(q => q.contacto_id===ct.id).sort((a,b) => new Date(b.creada)-new Date(a.creada));
   const q = qs[0], t = q ? turnoDe(q) : null, nom = primerNombre(c.nombre || ct.nombre), h = hoyStr();
   const humanos = c.msgs.filter(m => m.message.type==='human'), bots = c.msgs.filter(m => m.message.type==='ai' && !RE_ASESOR.test(textoMsg(m.message)));
-  const ultCli = humanos.length ? textoMsg(humanos[humanos.length-1].message) : '', ultBot = bots.length ? textoMsg(bots[bots.length-1].message) : '';
+  const ultCli = humanos.length ? sinImg(textoMsg(humanos[humanos.length-1].message)) : '', ultBot = bots.length ? textoMsg(bots[bots.length-1].message) : '';
   let accion, sugerido;
   if(!q){ accion = 'Todavía no hay un pedido registrado. Escribile para saber qué medida necesita y ofrecele un presupuesto.'; sugerido = `Hola ${nom}, te escribo de Total Neumáticos. ¿Te puedo ayudar con la medida de cubiertas que buscás?`; }
   else if(q.estado==='derivada'){ accion = 'El cliente necesita que lo atienda una persona. Contactalo cuanto antes por WhatsApp' + (q.notas ? ` (motivo: ${q.notas}).` : '.'); sugerido = `Hola ${nom}, soy del equipo de Total Neumáticos. Vi tu consulta${q.medida ? ' por la medida '+q.medida : ''} y te escribo para ayudarte.`; }

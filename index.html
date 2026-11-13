@@ -302,6 +302,23 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 .dias .d span{font-size:10px;color:var(--apagado);white-space:nowrap;height:12px}
 .dias .d em{font-style:normal;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;height:12px}
 .rank.ancho .fila-r{grid-template-columns:150px 1fr auto}
+.pub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px}
+.pub-ver{border-radius:10px;padding:16px 18px;border:1px solid var(--linea);background:var(--verde-2);display:flex;flex-direction:column;gap:4px}
+.pub-ver b{font:800 22px/1.15 var(--f-display);letter-spacing:-.01em}
+.pub-ver span{font-size:14px;color:var(--texto);line-height:1.45}
+.pub-ver.ok{border-color:var(--ok)} .pub-ver.ok b{color:var(--ok)}
+.pub-ver.med{border-color:var(--amarillo)} .pub-ver.med b{color:var(--amarillo)}
+.pub-ver.mal{border-color:var(--rojo)} .pub-ver.mal b{color:var(--rojo)}
+.pub-ver.nd b{color:var(--apagado)}
+.pub-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin-top:12px}
+.pub-form label,.pub-cfg label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--apagado)}
+.pub-cfg{display:flex;gap:14px;align-items:end;flex-wrap:wrap;margin-top:12px}
+.pub-form input,.pub-form select,.pub-cfg input{background:var(--verde);color:var(--texto);border:1px solid var(--linea);border-radius:8px;padding:10px 12px;font:inherit;min-width:0}
+.pub-cfg input{width:90px}
+.pub-lista{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.pub-lista .f{display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:14px;padding:6px 0;border-top:1px solid var(--linea)}
+.pub-lista .f span{min-width:0;overflow-wrap:anywhere}
+.pub-nota{font-size:12.5px;color:var(--apagado);line-height:1.5;margin-top:10px}
 .aviso-sql{color:var(--apagado);font-size:13px;line-height:1.5}
 .aviso-sql code{background:#00000030;padding:1px 6px;border-radius:4px}
 .contador{color:var(--apagado);font-size:13px}
@@ -379,7 +396,7 @@ const fmtTs = t => { const d = new Date(t); return d.toLocaleDateString('es-PY',
 const waLink = tel => `https://wa.me/${String(tel).replace(/\D/g,'')}`;
 
 let db = null, D = {contactos:[],consultas:[],turnos:[],perfiles:[],tareas:[],ind:{total_leads:0,leads_calificados:0,ventas_agendadas:0}};
-let fPanel = '30', fConsBusca = '', fConsDesde = '', fConsHasta = '', fConsMedida = '', fConsPais = '', fConsOrden = 'recientes', MSG_OK = false;
+let PUB_OK = false, fPubMargen = (() => { try{ const v = Number(localStorage.getItem('margenPub')); return v>0 && v<=100 ? v : 25; }catch(e){ return 25; } })(), fPanel = '30', fConsBusca = '', fConsDesde = '', fConsHasta = '', fConsMedida = '', fConsPais = '', fConsOrden = 'recientes', MSG_OK = false;
 let fCalTareas = null, UID = null, EMAIL = '', ROLES_OK = true, fAsig = 'todos', fTareas = null, fTareaOp = 'todos';
 const perfilDe = id => D.perfiles.find(p => p.user_id===id);
 const yo = () => perfilDe(UID) || {rol:'operador', nombre:''};
@@ -428,7 +445,9 @@ function demoData(){
     {id:4,titulo:'Cargar el monto de la venta de Lucía',detalle:null,asignado_a:'u3',creada_por:'u1',vence:null,estado:'hecha',creada:new Date().toISOString(),hecha_en:new Date().toISOString()}];
   const msgdia = []; for(let n=0;n<40;n++){ const x = new Date(); x.setDate(x.getDate()-n); const base = [14,22,9,31,18,26,12][n%7] + (n%5)*2; msgdia.push({dia:`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`, recibidos:base, enviados:base+3, conversaciones:Math.max(2,Math.round(base/4))}); }
   MSG_OK = true;
-  return {contactos,consultas,turnos,perfiles,tareas,msgdia,ind:{total_leads:4,leads_calificados:3,ventas_agendadas:2}};
+  PUB_OK = true;
+  const pub = [0,6,13,20,27].map((n,i) => { const x = new Date(); x.setDate(x.getDate()-n); return {id:i+1, fecha:`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`, monto:[25,30,20,35,30][i], canal:'Meta Ads', nota:i===0?'Campaña flyers Westlake':null}; });
+  return {contactos,consultas,turnos,perfiles,tareas,msgdia,pub,ind:{total_leads:4,leads_calificados:3,ventas_agendadas:2}};
 }
 async function cargar(){
   $('#msg').textContent = '';
@@ -446,7 +465,9 @@ async function cargar(){
   ROLES_OK = !pf.error && !tr.error;
   const md = await db.from('mensajes_por_dia').select('*').order('dia',{ascending:false}).limit(400);
   MSG_OK = !md.error;
-  D = {contactos:c.data, consultas:q.data, turnos:t.data, perfiles:pf.error ? [] : pf.data, tareas:tr.error ? [] : tr.data, msgdia:md.error ? [] : md.data, ind:i.data};
+  const pb = await db.from('inversion_publicidad').select('*').order('fecha',{ascending:false}).limit(1000);
+  PUB_OK = !pb.error;
+  D = {contactos:c.data, consultas:q.data, turnos:t.data, perfiles:pf.error ? [] : pf.data, tareas:tr.error ? [] : tr.data, msgdia:md.error ? [] : md.data, pub:pb.error ? [] : pb.data, ind:i.data};
 }
 async function actualizar(tabla, id, campos){
   if(DEMO){ const fila = D[tabla].find(x => x.id===id); Object.assign(fila, campos); return; }
@@ -843,6 +864,68 @@ function graficoDias(dias, valor, tit){
   const max = Math.max(...dias.map(valor), 1), h = ymd(new Date()), cada = dias.length>20 ? 5 : dias.length>10 ? 2 : 1;
   return `<div class="dias" role="img" aria-label="${esc(tit)}">${dias.map((f,i) => { const v = valor(f); return `<div class="d${f===h?' hoy':''}" title="${esc(fmtFecha(f))}: ${v}"><em>${dias.length<=14 && v ? v : ''}</em><i style="height:${Math.max(2, Math.round(v/max*100))}px"></i><span>${i%cada===0 || f===h ? f.slice(8)+'/'+f.slice(5,7) : ''}</span></div>`; }).join('')}</div>`;
 }
+/* ---------- Publicidad: ¿conviene? ---------- */
+const CANALES_PUB = ['Meta Ads','Instagram','Google Ads','TikTok','Otro'];
+const puedePub = () => !D.perfiles.length || ['supervisor','admin'].includes(yo().rol);
+function bloquePublicidad(){
+  const r = rangoPanel(fPanel);
+  if(!PUB_OK) return `<div class="panel" style="margin-bottom:20px"><h3>Publicidad</h3><div class="aviso-sql">Falta activar la inversión en publicidad. Ejecutá <code>publicidad.sql</code> en Supabase (proyecto de Total) y recargá.</div></div>`;
+  const pubs = (D.pub||[]).filter(p => (!r.desde || p.fecha>=r.desde) && (!r.hasta || p.fecha<=r.hasta));
+  const inv = pubs.reduce((a,p) => a + Number(p.monto||0), 0);
+  const msgs = (D.msgdia||[]).filter(x => (!r.desde || String(x.dia).slice(0,10)>=r.desde) && (!r.hasta || String(x.dia).slice(0,10)<=r.hasta)).reduce((a,x) => a + Number(x.recibidos||0), 0);
+  const hayMsg = MSG_OK && (D.msgdia||[]).length;
+  const nuevos = D.contactos.filter(c => dentro(c.primer_contacto, r));
+  const calif = new Set(D.consultas.filter(q => q.lead_calificado && dentro(q.creada, r)).map(q => q.contacto_id)).size;
+  const ventas = D.consultas.filter(q => q.estado==='cerrada' && dentro(q.cerrada_en || q.creada, r));
+  const ventasMonto = ventas.filter(q => q.monto!=null), ingresos = ventasMonto.reduce((a,q) => a + Number(q.monto), 0);
+  const sinMonto = ventas.length - ventasMonto.length;
+  const costo = n => n>0 && inv>0 ? fmtMoneda(inv/n) : '—';
+  const margen = fPubMargen/100, ganancia = ingresos*margen - inv, roas = inv>0 ? ingresos/inv : 0, equilibrio = 1/margen;
+  let ver;
+  if(!inv) ver = {c:'nd', t:'Falta cargar la inversión', d:'Cargá lo que gastaste en publicidad para ver si conviene.'};
+  else if(!ventasMonto.length) ver = {c:'nd', t:'Todavía sin ventas', d:`Invertiste ${fmtMoneda(inv)} y no hay ventas cerradas con monto en este período. Las ventas suelen llegar días después del mensaje: probá con un período más largo.`};
+  else if(roas >= equilibrio) ver = {c:'ok', t:'Conviene', d:`Por cada USD 1 invertido entraron USD ${roas.toFixed(1).replace('.',',')}. Ganancia estimada después de publicidad: ${fmtMoneda(ganancia)}.`};
+  else if(roas >= equilibrio*0.7) ver = {c:'med', t:'Ajustado', d:`Entraron USD ${roas.toFixed(1).replace('.',',')} por cada USD 1 invertido; para cubrir la inversión con un margen del ${fPubMargen}% hacen falta USD ${equilibrio.toFixed(1).replace('.',',')}. Resultado estimado: ${fmtMoneda(ganancia)}.`};
+  else ver = {c:'mal', t:'No conviene (por ahora)', d:`Entraron USD ${roas.toFixed(1).replace('.',',')} por cada USD 1 invertido y se necesitan USD ${equilibrio.toFixed(1).replace('.',',')}. Resultado estimado: ${fmtMoneda(ganancia)}.`};
+  const puede = puedePub();
+  const btn = [['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes'],['todo','Todo']].map(([k,t]) => `<button class="btn sec chico${fPanel===k?' activo':''}" type="button" data-panel-rango="${k}">${t}</button>`).join('');
+  const ultimas = (D.pub||[]).slice(0,8).map(p => `<div class="f"><span><b style="display:inline">${fmtMoneda(p.monto)}</b> · ${fmtFecha(p.fecha)}${p.canal ? ' · '+esc(p.canal) : ''}${p.nota ? ' · '+esc(p.nota) : ''}</span>${puede ? `<button class="btn sec chico" type="button" data-pub-del="${p.id}" aria-label="Borrar esta carga">Borrar</button>` : ''}</div>`).join('');
+  return `<div class="panel" style="margin-bottom:20px"><div class="fila" style="margin:0"><h3 style="margin:0">Publicidad: ¿conviene?</h3><div class="rango">${btn}</div></div>
+  <div class="kpis chicos" style="margin-top:14px">
+    <div class="kpi"><div class="etq">Invertido</div><div class="n">${fmtUSD(inv)}</div><small>${pubs.length} ${pubs.length===1?'carga':'cargas'} en el período</small></div>
+    <div class="kpi"><div class="etq">Mensajes recibidos</div><div class="n">${hayMsg ? msgs : '—'}</div><small>${hayMsg && msgs ? `${costo(msgs)} por mensaje` : 'Falta registrar los mensajes'}</small></div>
+    <div class="kpi"><div class="etq">Contactos nuevos</div><div class="n">${nuevos.length}</div><small>${costo(nuevos.length)} por contacto</small></div>
+    <div class="kpi"><div class="etq">Leads calificados</div><div class="n">${calif}</div><small>${costo(calif)} por lead calificado</small></div>
+    <div class="kpi"><div class="etq">Ventas cerradas</div><div class="n">${ventas.length}</div><small>${fmtUSD(ingresos)} ingresados${ventas.length && inv ? ` · ${costo(ventas.length)} por venta` : ''}</small></div>
+  </div>
+  <div class="pub-grid"><div class="pub-ver ${ver.c}"><b>${ver.t}</b><span>${ver.d}</span></div></div>
+  ${sinMonto ? `<div class="pub-nota">${sinMonto} ${sinMonto===1?'venta cerrada sin monto cargado':'ventas cerradas sin monto cargado'}: no entra${sinMonto===1?'':'n'} en el cálculo. Cargalo desde el Pipeline.</div>` : ''}
+  <div class="pub-cfg"><label>Margen de ganancia sobre la venta (%)<input type="number" id="pub-margen" min="1" max="100" step="1" value="${fPubMargen}"></label><span class="pub-nota" style="margin:0 0 6px">Con este margen se estima si la publicidad se paga sola.</span></div>
+  ${puede ? `<form class="pub-form" id="form-pub"><label>Fecha<input type="date" id="pub-fecha" value="${hoyStr()}" required></label><label>Monto (USD)<input type="number" id="pub-monto" min="0" step="0.01" inputmode="decimal" required placeholder="0"></label><label>Canal<select id="pub-canal">${CANALES_PUB.map(c => `<option>${c}</option>`).join('')}</select></label><label>Nota (opcional)<input type="text" id="pub-nota" maxlength="120" placeholder="Ej: campaña flyers"></label><button class="btn" type="submit" id="pub-ok">Cargar inversión</button></form><div class="error" id="pub-error" role="alert"></div>` : ''}
+  ${ultimas ? `<div class="pub-lista">${ultimas}</div>` : ''}
+  <div class="pub-nota">Los mensajes y contactos son todos los que llegaron en el período, vengan o no de un anuncio: sirve como indicador rápido, no como medición exacta por campaña.</div></div>`;
+}
+async function cargarPublicidad(){
+  const fecha = $('#pub-fecha').value, monto = Number($('#pub-monto').value), canal = $('#pub-canal').value, nota = $('#pub-nota').value.trim() || null;
+  if(!fecha || !(monto>=0) || $('#pub-monto').value==='') return;
+  $('#pub-ok').disabled = true; $('#pub-error').textContent = '';
+  try{
+    let fila = {id:Math.max(0,...(D.pub||[]).map(p => p.id))+1, fecha, monto, canal, nota};
+    if(!DEMO){ const {data, error} = await db.from('inversion_publicidad').insert({fecha, monto, canal, nota}).select('*').single(); if(error) throw error; fila = data; }
+    D.pub = [fila, ...(D.pub||[])].sort((a,b) => String(b.fecha).localeCompare(String(a.fecha)) || b.id-a.id);
+    pintar(); toast(`Inversión cargada: ${fmtMoneda(monto)}`);
+  }catch(err){ $('#pub-error').textContent = 'No se pudo cargar: ' + (err.message||err) + '. ¿Ejecutaste publicidad.sql?'; $('#pub-ok').disabled = false; }
+}
+async function borrarPublicidad(id){
+  if(!window.confirm('¿Borrar esta carga de inversión? No se puede deshacer.')) return;
+  try{
+    if(!DEMO){ const {error} = await db.from('inversion_publicidad').delete().eq('id', id); if(error) throw error; }
+    D.pub = (D.pub||[]).filter(p => p.id!==id); pintar();
+  }catch(err){ $('#msg').textContent = 'No se pudo borrar: ' + (err.message||err); }
+}
+document.addEventListener('submit', e => { if(e.target.id==='form-pub'){ e.preventDefault(); cargarPublicidad(); } });
+document.addEventListener('change', e => { if(e.target.id==='pub-margen'){ const v = Number(e.target.value); if(v>0 && v<=100){ fPubMargen = v; try{ localStorage.setItem('margenPub', String(v)); }catch(x){} setTimeout(pintar, 0); } } });
+document.addEventListener('click', e => { const b = e.target.closest('[data-pub-del]'); if(b) borrarPublicidad(Number(b.dataset.pubDel)); });
 function bloqueActividad(){
   const r = rangoPanel(fPanel), dias = listaDias(r);
   const cons = D.consultas.filter(q => dentro(q.creada, r));
@@ -897,6 +980,7 @@ function vPanel(){
     <div class="kpi"><div class="etq">Perdidos por stock</div><div class="n">${D.consultas.filter(q => q.estado==='perdida' && q.motivo_perdida==='sin_stock').length}</div><small>Pedidos de medidas sin stock</small></div>
   </div>
   ${bloqueActividad()}
+  ${bloquePublicidad()}
   ${bloqueMisTareas()}
   ${bloqueIngresos()}
   <div class="dos">
@@ -1327,7 +1411,7 @@ async function recargar(repintar=true){
   try{
     const antes = new Set(misPendientes().map(t => t.id));
     await cargar();
-    const f = $('#form-tarea'), escribiendo = f && ($('#tarea-titulo').value || $('#tarea-contacto').value || $('#tarea-detalle').value);
+    const f = $('#form-tarea'), escribiendo = (f && ($('#tarea-titulo').value || $('#tarea-contacto').value || $('#tarea-detalle').value)) || ($('#pub-monto') && ($('#pub-monto').value || $('#pub-nota').value));
     if(repintar && !escribiendo) pintar(); else if(repintar) renderNotif();
     if(!notifIniciado){ notifIniciado = true; avisoInicial(); }
     else { const nuevas = misPendientes().filter(t => !antes.has(t.id)); if(nuevas.length) toast(nuevas.length===1 ? `Te asignaron una tarea nueva: ${nuevas[0].titulo}` : `Te asignaron ${nuevas.length} tareas nuevas.`); }

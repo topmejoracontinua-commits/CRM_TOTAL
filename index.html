@@ -314,7 +314,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 .pub-form label,.pub-cfg label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--apagado)}
 .pub-cfg{display:flex;gap:14px;align-items:end;flex-wrap:wrap;margin-top:12px}
 .pub-form input,.pub-form select,.pub-cfg input{background:var(--verde);color:var(--texto);border:1px solid var(--linea);border-radius:8px;padding:10px 12px;font:inherit;min-width:0}
-.pub-cfg input{width:90px}
+.pub-cfg input{width:110px}
 .pub-lista{margin-top:12px;display:flex;flex-direction:column;gap:6px}
 .pub-lista .f{display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:14px;padding:6px 0;border-top:1px solid var(--linea)}
 .pub-lista .f span{min-width:0;overflow-wrap:anywhere}
@@ -396,6 +396,10 @@ const fmtTs = t => { const d = new Date(t); return d.toLocaleDateString('es-PY',
 const waLink = tel => `https://wa.me/${String(tel).replace(/\D/g,'')}`;
 
 let db = null, D = {contactos:[],consultas:[],turnos:[],perfiles:[],tareas:[],ind:{total_leads:0,leads_calificados:0,ventas_agendadas:0}};
+const leerNum = (k, def) => { try{ const v = Number(localStorage.getItem(k)); return v>0 ? v : def; }catch(e){ return def; } };
+let PUB_GS_PESO = leerNum('pubGsPeso', 4), PUB_PESO_USD = leerNum('pubPesoUsd', 1550);
+const aUSD = (monto, mon) => mon==='PYG' ? monto/PUB_GS_PESO/PUB_PESO_USD : mon==='ARS' ? monto/PUB_PESO_USD : monto;
+const fmtMon = (n, mon) => mon==='PYG' ? '₲' + Number(n).toLocaleString('es-PY',{maximumFractionDigits:0}) : mon==='ARS' ? '$' + Number(n).toLocaleString('es-AR',{maximumFractionDigits:0}) + ' ARS' : fmtMoneda(n);
 let PUB_OK = false, fPubMargen = (() => { try{ const v = Number(localStorage.getItem('margenPub')); return v>0 && v<=100 ? v : 25; }catch(e){ return 25; } })(), fPanel = '30', fConsBusca = '', fConsDesde = '', fConsHasta = '', fConsMedida = '', fConsPais = '', fConsOrden = 'recientes', MSG_OK = false;
 let fCalTareas = null, UID = null, EMAIL = '', ROLES_OK = true, fAsig = 'todos', fTareas = null, fTareaOp = 'todos';
 const perfilDe = id => D.perfiles.find(p => p.user_id===id);
@@ -889,7 +893,7 @@ function bloquePublicidad(){
   else ver = {c:'mal', t:'No conviene (por ahora)', d:`Entraron USD ${roas.toFixed(1).replace('.',',')} por cada USD 1 invertido y se necesitan USD ${equilibrio.toFixed(1).replace('.',',')}. Resultado estimado: ${fmtMoneda(ganancia)}.`};
   const puede = puedePub();
   const btn = [['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes'],['todo','Todo']].map(([k,t]) => `<button class="btn sec chico${fPanel===k?' activo':''}" type="button" data-panel-rango="${k}">${t}</button>`).join('');
-  const ultimas = (D.pub||[]).slice(0,8).map(p => `<div class="f"><span><b style="display:inline">${fmtMoneda(p.monto)}</b> · ${fmtFecha(p.fecha)}${p.canal ? ' · '+esc(p.canal) : ''}${p.nota ? ' · '+esc(p.nota) : ''}</span>${puede ? `<button class="btn sec chico" type="button" data-pub-del="${p.id}" aria-label="Borrar esta carga">Borrar</button>` : ''}</div>`).join('');
+  const ultimas = (D.pub||[]).slice(0,8).map(p => `<div class="f"><span><b style="display:inline">${p.moneda && p.moneda!=='USD' && p.monto_original!=null ? fmtMon(p.monto_original, p.moneda)+'</b> ≈ '+fmtMoneda(p.monto) : fmtMoneda(p.monto)+'</b>'} · ${fmtFecha(p.fecha)}${p.canal ? ' · '+esc(p.canal) : ''}${p.nota ? ' · '+esc(p.nota) : ''}</span>${puede ? `<button class="btn sec chico" type="button" data-pub-del="${p.id}" aria-label="Borrar esta carga">Borrar</button>` : ''}</div>`).join('');
   return `<div class="panel" style="margin-bottom:20px"><div class="fila" style="margin:0"><h3 style="margin:0">Publicidad: ¿conviene?</h3><div class="rango">${btn}</div></div>
   <div class="kpis chicos" style="margin-top:14px">
     <div class="kpi"><div class="etq">Invertido</div><div class="n">${fmtUSD(inv)}</div><small>${pubs.length} ${pubs.length===1?'carga':'cargas'} en el período</small></div>
@@ -900,20 +904,21 @@ function bloquePublicidad(){
   </div>
   <div class="pub-grid"><div class="pub-ver ${ver.c}"><b>${ver.t}</b><span>${ver.d}</span></div></div>
   ${sinMonto ? `<div class="pub-nota">${sinMonto} ${sinMonto===1?'venta cerrada sin monto cargado':'ventas cerradas sin monto cargado'}: no entra${sinMonto===1?'':'n'} en el cálculo. Cargalo desde el Pipeline.</div>` : ''}
-  <div class="pub-cfg"><label>Margen de ganancia sobre la venta (%)<input type="number" id="pub-margen" min="1" max="100" step="1" value="${fPubMargen}"></label><span class="pub-nota" style="margin:0 0 6px">Con este margen se estima si la publicidad se paga sola.</span></div>
-  ${puede ? `<form class="pub-form" id="form-pub"><label>Fecha<input type="date" id="pub-fecha" value="${hoyStr()}" required></label><label>Monto (USD)<input type="number" id="pub-monto" min="0" step="0.01" inputmode="decimal" required placeholder="0"></label><label>Canal<select id="pub-canal">${CANALES_PUB.map(c => `<option>${c}</option>`).join('')}</select></label><label>Nota (opcional)<input type="text" id="pub-nota" maxlength="120" placeholder="Ej: campaña flyers"></label><button class="btn" type="submit" id="pub-ok">Cargar inversión</button></form><div class="error" id="pub-error" role="alert"></div>` : ''}
+  <div class="pub-cfg"><label>Margen de ganancia sobre la venta (%)<input type="number" id="pub-margen" min="1" max="100" step="1" value="${fPubMargen}"></label><label>Guaraníes por peso arg.<input type="number" id="pub-gs" min="0.01" step="0.01" value="${PUB_GS_PESO}"></label><label>Pesos arg. por USD<input type="number" id="pub-peso" min="1" step="1" value="${PUB_PESO_USD}"></label><span class="pub-nota" style="margin:0 0 6px;flex:1;min-width:200px">El margen estima si la publicidad se paga sola. Los tipos de cambio pasan guaraníes y pesos a dólares al cargar (₲70.215 ≈ USD ${(70215/PUB_GS_PESO/PUB_PESO_USD).toFixed(2).replace('.',',')}).</span></div>
+  ${puede ? `<form class="pub-form" id="form-pub"><label>Fecha<input type="date" id="pub-fecha" value="${hoyStr()}" required></label><label>Monto<input type="number" id="pub-monto" min="0" step="0.01" inputmode="decimal" required placeholder="0"></label><label>Moneda<select id="pub-moneda"><option value="PYG">Guaraníes (₲)</option><option value="USD">Dólares (USD)</option><option value="ARS">Pesos argentinos</option></select></label><label>Canal<select id="pub-canal">${CANALES_PUB.map(c => `<option>${c}</option>`).join('')}</select></label><label>Nota (opcional)<input type="text" id="pub-nota" maxlength="120" placeholder="Ej: campaña flyers"></label><button class="btn" type="submit" id="pub-ok">Cargar inversión</button></form><div class="pub-nota" id="pub-prev" style="margin-top:6px"></div><div class="error" id="pub-error" role="alert"></div>` : ''}
   ${ultimas ? `<div class="pub-lista">${ultimas}</div>` : ''}
   <div class="pub-nota">Los mensajes y contactos son todos los que llegaron en el período, vengan o no de un anuncio: sirve como indicador rápido, no como medición exacta por campaña.</div></div>`;
 }
 async function cargarPublicidad(){
-  const fecha = $('#pub-fecha').value, monto = Number($('#pub-monto').value), canal = $('#pub-canal').value, nota = $('#pub-nota').value.trim() || null;
-  if(!fecha || !(monto>=0) || $('#pub-monto').value==='') return;
+  const fecha = $('#pub-fecha').value, original = Number($('#pub-monto').value), moneda = $('#pub-moneda').value, canal = $('#pub-canal').value, nota = $('#pub-nota').value.trim() || null;
+  if(!fecha || !(original>=0) || $('#pub-monto').value==='') return;
+  const monto = Math.round(aUSD(original, moneda)*100)/100;
   $('#pub-ok').disabled = true; $('#pub-error').textContent = '';
   try{
-    let fila = {id:Math.max(0,...(D.pub||[]).map(p => p.id))+1, fecha, monto, canal, nota};
-    if(!DEMO){ const {data, error} = await db.from('inversion_publicidad').insert({fecha, monto, canal, nota}).select('*').single(); if(error) throw error; fila = data; }
+    let fila = {id:Math.max(0,...(D.pub||[]).map(p => p.id))+1, fecha, monto, canal, nota, moneda, monto_original:original};
+    if(!DEMO){ const {data, error} = await db.from('inversion_publicidad').insert({fecha, monto, canal, nota, moneda, monto_original:original}).select('*').single(); if(error) throw error; fila = data; }
     D.pub = [fila, ...(D.pub||[])].sort((a,b) => String(b.fecha).localeCompare(String(a.fecha)) || b.id-a.id);
-    pintar(); toast(`Inversión cargada: ${fmtMoneda(monto)}`);
+    pintar(); toast(`Inversión cargada: ${fmtMon(original, moneda)} ≈ ${fmtMoneda(monto)}`);
   }catch(err){ $('#pub-error').textContent = 'No se pudo cargar: ' + (err.message||err) + '. ¿Ejecutaste publicidad.sql?'; $('#pub-ok').disabled = false; }
 }
 async function borrarPublicidad(id){
@@ -925,6 +930,8 @@ async function borrarPublicidad(id){
 }
 document.addEventListener('submit', e => { if(e.target.id==='form-pub'){ e.preventDefault(); cargarPublicidad(); } });
 document.addEventListener('change', e => { if(e.target.id==='pub-margen'){ const v = Number(e.target.value); if(v>0 && v<=100){ fPubMargen = v; try{ localStorage.setItem('margenPub', String(v)); }catch(x){} setTimeout(pintar, 0); } } });
+document.addEventListener('change', e => { if(e.target.id==='pub-gs' || e.target.id==='pub-peso'){ const v = Number(e.target.value); if(v>0){ if(e.target.id==='pub-gs'){ PUB_GS_PESO = v; try{ localStorage.setItem('pubGsPeso', String(v)); }catch(x){} } else { PUB_PESO_USD = v; try{ localStorage.setItem('pubPesoUsd', String(v)); }catch(x){} } setTimeout(pintar, 0); } } });
+document.addEventListener('input', e => { if(e.target.id==='pub-monto' || e.target.id==='pub-moneda'){ const v = Number($('#pub-monto').value), m = $('#pub-moneda').value, p = $('#pub-prev'); p.textContent = v>0 && m!=='USD' ? `${fmtMon(v, m)} ≈ ${fmtMoneda(Math.round(aUSD(v, m)*100)/100)}` : ''; } });
 document.addEventListener('click', e => { const b = e.target.closest('[data-pub-del]'); if(b) borrarPublicidad(Number(b.dataset.pubDel)); });
 function bloqueActividad(){
   const r = rangoPanel(fPanel), dias = listaDias(r);

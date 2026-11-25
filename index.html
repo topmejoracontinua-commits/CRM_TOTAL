@@ -105,6 +105,7 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
 @keyframes latido{0%{box-shadow:0 0 0 0 #ff4d4d99}70%{box-shadow:0 0 0 8px #ff4d4d00}100%{box-shadow:0 0 0 0 #ff4d4d00}}
 @media (prefers-reduced-motion:reduce){.col[data-etapa="derivada"]>h3 .pt{animation:none}}
 .p-abierta{color:var(--apagado);border-color:var(--apagado)}
+.p-mas_adelante{color:#b48cff;border-color:#b48cff}
 select,input[type=text],input[type=email],input[type=password],input[type=search]{background:var(--verde);border:1px solid var(--verde-3);border-radius:6px;padding:8px 10px;color:var(--texto);max-width:100%}
 select{cursor:pointer}
 .etqs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -354,6 +355,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
       <button role="tab" data-v="tareas" aria-selected="false">Tareas</button>
       <button role="tab" data-v="consultas" aria-selected="false">Consultas</button>
       <button role="tab" data-v="perdidos" aria-selected="false">Perdidos</button>
+      <button role="tab" data-v="depurar" aria-selected="false">Depurar</button>
       <button role="tab" data-v="contactos" aria-selected="false">Contactos</button>
     </nav>
   </header>
@@ -368,9 +370,10 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 
 <div class="velo centro" id="venta" hidden><form class="modal" id="form-venta" role="dialog" aria-modal="true" aria-labelledby="venta-t"><h2 id="venta-t" style="font-size:20px">Registrar venta</h2><div class="sub" id="venta-sub"></div><label>Monto cobrado (USD)<input id="venta-monto" type="number" min="0" step="0.01" inputmode="decimal" required></label><div class="error" id="venta-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="venta-cancelar">Cancelar</button><button class="btn" type="submit" id="venta-ok">Guardar venta</button></div></form></div>
 
-<div class="velo centro" id="perdida" hidden><form class="modal" id="form-perdida" role="dialog" aria-modal="true" aria-labelledby="perdida-t"><h2 id="perdida-t" style="font-size:20px">¿Por qué se perdió?</h2><div class="sub" id="perdida-sub"></div><label>Motivo<select id="perdida-motivo" style="padding:11px 12px;font-size:16px"><option value="sin_stock">Sin stock</option><option value="precio">Precio</option><option value="no_respondio">No respondió</option><option value="cancelacion">Cancelación del cliente</option><option value="otro">Otro</option></select></label><div class="error" id="perdida-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="perdida-cancelar">Cancelar</button><button class="btn" type="submit" id="perdida-ok">Guardar</button></div></form></div>
+<div class="velo centro" id="perdida" hidden><form class="modal" id="form-perdida" role="dialog" aria-modal="true" aria-labelledby="perdida-t"><h2 id="perdida-t" style="font-size:20px">¿Por qué se perdió?</h2><div class="sub" id="perdida-sub"></div><label>Motivo<select id="perdida-motivo" style="padding:11px 12px;font-size:16px"><option value="sin_stock">Sin stock</option><option value="precio">Precio</option><option value="no_respondio">No respondió</option><option value="cancelacion">Cancelación del cliente</option><option value="no_vino">Coordinó visita y no vino</option><option value="otro">Otro</option></select></label><div class="error" id="perdida-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="perdida-cancelar">Cancelar</button><button class="btn" type="submit" id="perdida-ok">Guardar</button></div></form></div>
 <div class="velo centro" id="aviso" hidden><form class="modal" id="form-aviso" role="dialog" aria-modal="true" aria-labelledby="aviso-t" style="width:min(480px,100%)"><h2 id="aviso-t" style="font-size:20px">Avisar que ingresó</h2><div class="sub" id="aviso-sub"></div><label>Mensaje<textarea id="aviso-texto" rows="5" style="width:100%;padding:11px 12px;font-size:15px;line-height:1.5"></textarea></label><div class="sub" id="aviso-nota"></div><div class="error" id="aviso-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn sec" type="button" id="aviso-cancelar">Cancelar</button><a class="btn wa-btn" id="aviso-wa" href="#" target="_blank" rel="noopener">Abrir en WhatsApp</a><button class="btn" type="button" id="aviso-enviar">Enviar desde el CRM</button></div></form></div>
 
+<div class="velo centro" id="novino" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="novino-t"><h2 id="novino-t" style="font-size:20px">La visita no se concretó</h2><div class="sub" id="novino-sub"></div><div class="sub">¿Cómo seguís con este cliente?</div><div style="display:flex;flex-direction:column;gap:8px"><button class="btn" type="button" data-novino="mas_adelante">Interesado: pasa a "Viene más adelante"</button><button class="btn sec" type="button" data-novino="no_vino">Coordinó visita y no vino (dar por perdida)</button><button class="btn sec" type="button" data-novino="abierta">Reprogramar: dejar la consulta abierta</button><button class="btn sec" type="button" data-novino="nada">Decidir después</button></div></div></div>
 <div class="velo centro" id="etq" hidden><div class="modal" role="dialog" aria-modal="true" aria-labelledby="etq-t"><h2 id="etq-t" style="font-size:20px">Etiquetas</h2><div class="sub" id="etq-sub"></div><div class="etqs" id="etq-actuales"></div><div><div class="sub" style="margin-bottom:6px">Sugeridas</div><div class="sug" id="etq-sug"></div></div><form id="form-etq" style="display:flex;gap:8px"><input type="text" id="etq-nueva" maxlength="30" placeholder="Otra etiqueta…" aria-label="Nueva etiqueta" style="flex:1;min-width:0"><button class="btn" type="submit">Agregar</button></form><div class="error" id="etq-error" role="alert"></div><div style="display:flex;justify-content:flex-end"><button class="btn sec" type="button" id="etq-cerrar">Listo</button></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -383,7 +386,7 @@ const SUPABASE_KEY = 'sb_publishable_CheOYNpuoS0tG2bqhqULsg_koJ2wqfn'; // clave 
 
 const DEMO = !SUPABASE_URL || !SUPABASE_KEY;
 const ESTADOS_TURNO = ['agendado','confirmado','realizado','cancelado','no_vino'];
-const ESTADOS_CONSULTA = ['abierta','agendada','derivada','mayorista','cerrada','perdida'];
+const ESTADOS_CONSULTA = ['abierta','agendada','mas_adelante','derivada','mayorista','cerrada','perdida'];
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const etiqueta = e => esc(e==='derivada' ? 'Necesita asesor' : e==='mayorista' ? 'Mayorista' : String(e).replace('_',' '));
@@ -412,7 +415,7 @@ let modoAgenda = 'calendario', diaSel = hoyStr(), mes = {y:new Date().getFullYea
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const ETAPAS = [
   {k:'nuevo',t:'Nuevo contacto',c:'#9db8ab'},{k:'derivada',t:'Necesita asesor',c:'#ff4d4d'},{k:'mayorista',t:'Mayorista',c:'#4da3ff'},{k:'abierta',t:'Con interés',c:'#ffd21f'},
-  {k:'agendada',t:'Visita agendada',c:'#5fd68a'},{k:'cerrada',t:'Vendido',c:'#ffffff'},{k:'perdida',t:'Perdido',c:'#7d8b84'}];
+  {k:'agendada',t:'Visita agendada',c:'#5fd68a'},{k:'mas_adelante',t:'Viene más adelante',c:'#b48cff'},{k:'cerrada',t:'Vendido',c:'#ffffff'},{k:'perdida',t:'Perdido',c:'#7d8b84'}];
 
 /* ---------- Datos ---------- */
 function demoData(){
@@ -536,9 +539,33 @@ function burbuja(x, c){
   const foto = im ? `<img class="foto-chat" data-img="${esc(im[1])}" alt="Foto enviada por el cliente">` : '';
   return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${foto}${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}</div>`;
 }
+/* Etapa del contacto desde el chat: la consulta más reciente (prefiere una activa) */
+function consultaDeChat(){
+  const ct = chatCtx && contactoDe(chatCtx.ident); if(!ct) return null;
+  const qs = D.consultas.filter(q => q.contacto_id===ct.id).sort((a,b) => new Date(b.creada)-new Date(a.creada));
+  return qs.find(q => !['cerrada','perdida'].includes(q.estado)) || qs[0] || null;
+}
+function chatMover(etapa){
+  if(!etapa || !chatCtx) return;
+  const ct = contactoDe(chatCtx.ident); if(!ct) return;
+  const q = consultaDeChat();
+  if(q) moverConsulta(q.id, etapa); else moverContacto(ct.id, etapa);
+}
+function chatEtapaHTML(){
+  const q = consultaDeChat(), est = q ? q.estado : 'nuevo', et = ETAPAS.find(e => e.k===est) || ETAPAS[0];
+  const btn = (k, t) => est===k ? '' : `<button class="btn sec chico" type="button" data-chat-etapa="${k}">${t}</button>`;
+  return `<div class="etqs" style="flex-basis:100%;align-items:center"><span class="sub" style="display:inline-flex;gap:6px;align-items:center"><span class="pt" style="width:9px;height:9px;border-radius:50%;background:${et.c};display:inline-block"></span>Etapa: <b style="color:var(--texto)">${esc(et.t)}</b></span>
+    <select data-chat-mover="1" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo' && e.k!==est).map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select>
+    ${est==='derivada' || est==='mayorista' || est==='nuevo' ? btn('abierta','Atendido') : ''}${btn('mas_adelante','Viene más adelante')}${btn('perdida','Perdido')}</div>`;
+}
+function chatBarraHTML(){
+  const c = chatCtx, num = String(c.ident).replace(/\D/g,'');
+  return `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>${(() => { const ct = contactoDe(c.ident); return ct ? `<div class="etqs" style="flex-basis:100%">${chipsEtq(ct)}<button class="btn sec chico" type="button" data-etq="${ct.id}">Etiquetas</button>${esSup() && D.perfiles.length ? `<button class="btn sec chico" type="button" data-nueva-tarea="${ct.id}">+ Tarea</button>` : ''}</div>${chatEtapaHTML()}` : ''; })()}`;
+}
+function pintarBarraChat(){ if(chatCtx) $('#chat-barra').innerHTML = chatBarraHTML(); }
 function renderChat(){
-  const c = chatCtx, cu = $('#chat-cuerpo'), num = String(c.ident).replace(/\D/g,'');
-  $('#chat-barra').innerHTML = `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>${(() => { const ct = contactoDe(c.ident); return ct ? `<div class="etqs" style="flex-basis:100%">${chipsEtq(ct)}<button class="btn sec chico" type="button" data-etq="${ct.id}">Etiquetas</button>${esSup() && D.perfiles.length ? `<button class="btn sec chico" type="button" data-nueva-tarea="${ct.id}">+ Tarea</button>` : ''}</div>` : ''; })()}`;
+  const c = chatCtx, cu = $('#chat-cuerpo');
+  pintarBarraChat();
   if(c.cargando){ cu.innerHTML = '<div class="vacio">Cargando conversación…</div>'; return; }
   if(chatTab==='res'){ cu.innerHTML = resumenHTML(c); cu.scrollTop = 0; return; }
   if(c.error){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(c.error)}. Ejecutá permisos_chat.sql en Supabase.</div>`; return; }
@@ -562,6 +589,7 @@ function resumenHTML(c){
     else { accion = `La visita del ${fmtFecha(t.fecha)} ya pasó y sigue sin cerrarse. Marcá si vino o no, y si compró pasalo a Vendido con el monto.`; sugerido = `Hola ${nom}, ¿pudiste pasar por Total Neumáticos? Quedamos a tu disposición para lo que necesites.`; }
   }
   else if(q.estado==='abierta' || q.estado==='agendada'){ accion = 'Consultó pero no agendó. Hacé seguimiento: ofrecele presupuesto final y un turno para la colocación.'; sugerido = `Hola ${nom}, soy de Total Neumáticos. ¿Pudiste ver la propuesta${q.medida ? ' de las '+q.medida : ''}? Si querés te agendo un turno para la colocación.`; }
+  else if(q.estado==='mas_adelante'){ accion = 'Dijo que viene más adelante. Retomalo con una novedad concreta (stock, promo o precio) y proponele una visita.'; sugerido = `Hola ${nom}, soy de Total Neumáticos. Te escribo para ver si seguís interesado${q.medida ? ' en las '+q.medida : ''}. Tenemos novedades, ¿querés que te pase el detalle?`; }
   else if(q.estado==='cerrada'){ accion = 'Venta cerrada' + (q.monto!=null ? ` por ${fmtUSD(q.monto)}.` : '. Falta cargar el monto en el Pipeline.') + ' Podés agradecerle y pedirle una reseña.'; sugerido = `Hola ${nom}, gracias por elegir Total Neumáticos. Si te gustó la atención, nos ayuda mucho una reseña en Google.`; }
   else { accion = q.motivo_perdida==='sin_stock' ? `Se perdió por falta de stock${q.medida ? ' de '+q.medida : ''}. Si ingresa mercadería, avisale por WhatsApp y recuperá la consulta.` : 'La consulta está marcada como perdida. Si el cliente vuelve a escribir, retomala desde el Pipeline.'; sugerido = `Hola ${nom}, soy de Total Neumáticos. Quedamos a tu disposición si más adelante necesitás cubiertas.`; }
   const num = String(c.ident).replace(/\D/g,'');
@@ -754,7 +782,7 @@ function vTareas(){
   else if(fTareas==='hechas') l = l.filter(t => t.estado==='hecha');
   if(fTareaOp!=='todos') l = l.filter(t => (fTareaOp==='sin' ? !t.asignado_a : t.asignado_a===fTareaOp));
   l.sort((a,b) => (a.estado===b.estado) ? (a.estado==='pendiente' ? (a.vence||'9999').localeCompare(b.vence||'9999') : new Date(b.hecha_en||0)-new Date(a.hecha_en||0)) : (a.estado==='pendiente' ? -1 : 1));
-  const activos = ['abierta','derivada','mayorista','agendada'];
+  const activos = ['abierta','derivada','mayorista','agendada','mas_adelante'];
   const carga = esSup() ? `<div class="kpis" style="margin-bottom:20px">${D.perfiles.map(p => `<div class="kpi"><div class="etq">${esc(p.nombre)}${p.rol==='supervisor' ? ' · supervisor' : ''}</div><div class="n">${D.tareas.filter(t => t.asignado_a===p.user_id && t.estado==='pendiente').length}</div><small>tareas pendientes · ${D.consultas.filter(q => q.asignado_a===p.user_id && activos.includes(q.estado)).length} leads activos</small></div>`).join('')}</div>` : '';
   const form = esSup() ? `<form class="formtarea panel" id="form-tarea" data-pre="${tareaPre || ''}"><label class="ancho">Nueva tarea<input type="text" id="tarea-titulo" required maxlength="160" placeholder="Ej: Llamar a Juan por la 265/60R18" style="width:100%"></label>
     <label>Asignar a<select id="tarea-asig" required>${D.perfiles.map(p => `<option value="${esc(p.user_id)}">${esc(p.nombre)}</option>`).join('')}</select></label>
@@ -929,6 +957,8 @@ async function borrarPublicidad(id){
   }catch(err){ $('#msg').textContent = 'No se pudo borrar: ' + (err.message||err); }
 }
 document.addEventListener('submit', e => { if(e.target.id==='form-pub'){ e.preventDefault(); cargarPublicidad(); } });
+document.addEventListener('change', e => { const cm = e.target.closest?.('[data-chat-mover]'); if(cm){ const v = cm.value; cm.value = ''; if(v) chatMover(v); return; } });
+document.addEventListener('click', e => { const ce = e.target.closest('[data-chat-etapa]'); if(ce) chatMover(ce.dataset.chatEtapa); });
 document.addEventListener('change', e => { if(e.target.id==='pub-margen'){ const v = Number(e.target.value); if(v>0 && v<=100){ fPubMargen = v; try{ localStorage.setItem('margenPub', String(v)); }catch(x){} setTimeout(pintar, 0); } } });
 document.addEventListener('change', e => { if(e.target.id==='pub-gs' || e.target.id==='pub-peso'){ const v = Number(e.target.value); if(v>0){ if(e.target.id==='pub-gs'){ PUB_GS_PESO = v; try{ localStorage.setItem('pubGsPeso', String(v)); }catch(x){} } else { PUB_PESO_USD = v; try{ localStorage.setItem('pubPesoUsd', String(v)); }catch(x){} } setTimeout(pintar, 0); } } });
 document.addEventListener('input', e => { if(e.target.id==='pub-monto' || e.target.id==='pub-moneda'){ const v = Number($('#pub-monto').value), m = $('#pub-moneda').value, p = $('#pub-prev'); p.textContent = v>0 && m!=='USD' ? `${fmtMon(v, m)} ≈ ${fmtMoneda(Math.round(aUSD(v, m)*100)/100)}` : ''; } });
@@ -1054,7 +1084,7 @@ function vConsultas(){
     <td>${esc(c.nombre||'Sin nombre')}${chipsEtq(ctDeId(q.contacto_id))}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
     <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
     <td>${q.lead_calificado ? '<span class="pill p-confirmado">calificado</span>' : '<span class="sub">—</span>'}</td>
-    <td><select data-t="consultas" data-id="${q.id}" data-c="estado" aria-label="Estado de la consulta">${ESTADOS_CONSULTA.map(e => `<option value="${e}" ${e===q.estado?'selected':''}>${e}</option>`).join('')}</select><span class="guardado" hidden>✓</span>${archivada(q) ? `<div class="sub" style="margin-top:4px">Archivada · sin respuesta hace ${diasSinRespuesta(q)} días</div>` : ''}</td>
+    <td><select data-t="consultas" data-id="${q.id}" data-c="estado" aria-label="Estado de la consulta">${ESTADOS_CONSULTA.map(e => `<option value="${e}" ${e===q.estado?'selected':''}>${e.replace('_',' ')}</option>`).join('')}</select><span class="guardado" hidden>✓</span>${archivada(q) ? `<div class="sub" style="margin-top:4px">Archivada · sin respuesta hace ${diasSinRespuesta(q)} días</div>` : ''}</td>
     <td>${asigCtl(q)}</td>
     <td>${btnChat(c)}</td>
     <td><input type="text" data-t="consultas" data-id="${q.id}" data-c="notas" value="${esc(q.notas||'')}" placeholder="Agregar nota" aria-label="Nota" style="width:100%;min-width:180px"><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
@@ -1126,7 +1156,11 @@ async function moverConsulta(id, etapa){
   if(etapa==='cerrada') return pedirMonto(id, true);
   if(etapa==='perdida') return pedirMotivo(id);
   const antes = q.estado;
-  try{ await actualizar('consultas', id, {estado:etapa}); q.estado = etapa; pintar(); }
+  try{
+    await actualizar('consultas', id, {estado:etapa}); q.estado = etapa;
+    if(etapa==='mas_adelante'){ for(const t of D.turnos.filter(t => t.consulta_id===id && ['agendado','confirmado'].includes(t.estado))){ const nuevo = t.fecha < hoyStr() ? 'no_vino' : 'cancelado'; await actualizar('turnos', t.id, {estado:nuevo}); t.estado = nuevo; } }
+    pintar();
+  }
   catch(err){ q.estado = antes; $('#msg').textContent = 'No se pudo mover: ' + (err.message||err); }
 }
 let ventaId = null, ventaMover = false;
@@ -1153,7 +1187,7 @@ $('#form-venta').addEventListener('submit', async e => {
   $('#venta-ok').disabled = false;
 });
 $('#venta-cancelar').addEventListener('click', () => $('#venta').hidden = true);
-const MOTIVOS = {sin_stock:'Sin stock', precio:'Precio', no_respondio:'No respondió', cancelacion:'Cancelación del cliente', otro:'Otro'};
+const MOTIVOS = {sin_stock:'Sin stock', precio:'Precio', no_respondio:'No respondió', cancelacion:'Cancelación del cliente', no_vino:'Coordinó visita y no vino', otro:'Otro'};
 let fPerdidos = 'sin_stock', perdidaId = null, fPerdDesde = '', fPerdHasta = '', fPerdMedida = '', fPerdBusca = '';
 const claveBusq = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 const fechaLocal = iso => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
@@ -1171,10 +1205,10 @@ function rangoPerdidos(k){
   else if(k==='mes'){ fPerdDesde = f(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); fPerdHasta = f(hoy); }
   else { fPerdDesde = ''; fPerdHasta = ''; }
 }
-function pedirMotivo(id){
+function pedirMotivo(id, pre){
   const q = D.consultas.find(x => x.id===id); perdidaId = id;
   $('#perdida-sub').textContent = `${q.contactos?.nombre || q.contactos?.identificador || 'Cliente'} · ${q.cantidad ? q.cantidad+' × ' : ''}${q.medida||''}`;
-  $('#perdida-motivo').value = q.motivo_perdida || 'sin_stock'; $('#perdida-error').textContent = ''; $('#perdida').hidden = false;
+  $('#perdida-motivo').value = pre || q.motivo_perdida || 'sin_stock'; $('#perdida-error').textContent = ''; $('#perdida').hidden = false;
 }
 $('#form-perdida').addEventListener('submit', async e => {
   e.preventDefault();
@@ -1297,7 +1331,7 @@ const guardarVisto = () => { try{ localStorage.setItem(vistoKey(), new Date().to
 const vencPlano = t => !t.vence ? 'Sin fecha límite' : t.vence < hoyStr() ? 'Vencida el ' + fmtFecha(t.vence) : t.vence===hoyStr() ? 'Vence hoy' : 'Vence el ' + fmtFecha(t.vence);
 function notificaciones(){
   const l = [], h = hoyStr(), visto = leerVisto(), conRoles = D.perfiles.length > 0;
-  const activos = ['abierta','derivada','mayorista','agendada'];
+  const activos = ['abierta','derivada','mayorista','agendada','mas_adelante'];
   misPendientes().sort((a,b) => (a.vence||'9999').localeCompare(b.vence||'9999')).forEach(t => l.push({
     n:1, nivel: t.vence && t.vence<h ? 'alta' : t.vence===h ? 'media' : 'baja', titulo:t.titulo, sub:vencPlano(t) + (t.hora ? ' · ' + t.hora.slice(0,5) : '') + (t.contacto_id && ctDeId(t.contacto_id) ? ' · ' + (ctDeId(t.contacto_id).nombre || '') : ''), nueva: !!visto && (t.creada||'') > visto, ir:'tareas', ficha:t.contacto_id||null}));
   const mio = q => !conRoles || q.asignado_a===UID;
@@ -1354,7 +1388,102 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if(e.key==='Escape') abrirNotif(false); });
 
-const VISTAS = {panel:vPanel, pipeline:vPipeline, agenda:vAgenda, tareas:vTareas, consultas:vConsultas, perdidos:vPerdidos, contactos:vContactos};
+/* ---------- Visita que no se concretó ---------- */
+let novinoId = null;
+function preguntarNoVino(consultaId){
+  const q = D.consultas.find(x => x.id===consultaId);
+  if(!q || ['perdida','cerrada'].includes(q.estado)) return;
+  novinoId = consultaId;
+  $('#novino-sub').textContent = `${q.contactos?.nombre || q.contactos?.identificador || 'Cliente'} · ${q.cantidad ? q.cantidad+' × ' : ''}${q.medida||''} ${q.modelo||''}`;
+  $('#novino').hidden = false;
+}
+$('#novino').addEventListener('click', async e => {
+  const b = e.target.closest('[data-novino]'); if(!b) return;
+  const op = b.dataset.novino, id = novinoId; $('#novino').hidden = true;
+  if(op==='nada') return;
+  if(op==='abierta' || op==='mas_adelante'){ await moverConsulta(id, op); if(op==='mas_adelante') toast('Pasó a la etapa "Viene más adelante".'); return; }
+  /* Perdida con motivo ya elegido: se guarda directo */
+  const q = D.consultas.find(x => x.id===id); if(!q) return;
+  const campos = {estado:'perdida', motivo_perdida:op};
+  try{
+    await actualizar('consultas', id, campos); Object.assign(q, campos);
+    for(const t of D.turnos.filter(t => t.consulta_id===id && !['cancelado','no_vino','realizado'].includes(t.estado))){ await actualizar('turnos', t.id, {estado:'cancelado'}); t.estado = 'cancelado'; }
+    toast('Quedó en Perdidos como "Coordinó visita y no vino".');
+    pintar();
+  }catch(err){ $('#msg').textContent = 'No se pudo guardar: ' + (err.message||err); }
+});
+document.addEventListener('keydown', e => { if(e.key==='Escape' && !$('#novino').hidden) $('#novino').hidden = true; });
+
+/* ---------- Depurar el pipeline ---------- */
+let fDepuDias = 15, depuSel = new Set();
+const diasInactiva = q => { const ct = ctDeId(q.contacto_id); const t = Math.max(new Date(q.creada).getTime(), ct?.ultimo_contacto ? new Date(ct.ultimo_contacto).getTime() : 0); return Math.floor((Date.now()-t)/864e5); };
+const turnosPend = q => D.turnos.filter(t => t.consulta_id===q.id && ['agendado','confirmado'].includes(t.estado));
+function depuListas(){
+  const h = hoyStr();
+  const vencidas = D.consultas.filter(q => !['perdida','cerrada'].includes(q.estado) && turnosPend(q).length && turnosPend(q).every(t => t.fecha < h))
+    .map(q => ({q, t: turnosPend(q).sort((a,b) => b.fecha.localeCompare(a.fecha))[0]}));
+  const idsV = new Set(vencidas.map(x => x.q.id));
+  const inactivas = D.consultas.filter(q => ['abierta','derivada','mayorista'].includes(q.estado) && !idsV.has(q.id) && !turnosPend(q).some(t => t.fecha >= h) && diasInactiva(q) > fDepuDias)
+    .sort((a,b) => diasInactiva(b)-diasInactiva(a));
+  return {vencidas, inactivas};
+}
+function depuFila(q, extra, motivoSug){
+  const c = q.contactos ?? {};
+  return `<tr><td><input type="checkbox" data-depu="${q.id}" data-sug="${motivoSug}" ${depuSel.has(q.id)?'checked':''} aria-label="Seleccionar"></td>
+    <td>${esc(c.nombre||'Sin nombre')}${chipsEtq(ctDeId(q.contacto_id))}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
+    <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
+    <td>${pill(q.estado)}</td>
+    <td>${extra}</td>
+    <td style="white-space:nowrap">${btnChat(c)}</td></tr>`;
+}
+function vDepurar(){
+  if(D.perfiles.length && !esSup()) return `<section class="vista"><h2>Depurar</h2><div class="vacio">Esta vista es solo para supervisores.</div></section>`;
+  const {vencidas, inactivas} = depuListas();
+  const vis = new Set([...vencidas.map(x=>x.q.id), ...inactivas.map(q=>q.id)]);
+  depuSel = new Set([...depuSel].filter(id => vis.has(id)));
+  const head = `<thead><tr><th style="width:34px"></th><th>Cliente</th><th>Pedido</th><th>Etapa</th><th>Detalle</th><th></th></tr></thead>`;
+  const tV = vencidas.length ? `<div class="tabla"><table>${head}<tbody>${vencidas.map(({q,t}) => depuFila(q, `Visita del <b style="display:inline">${fmtFecha(t.fecha)} ${fmtHora(t.hora)}</b> sin cerrar <button class="btn chico" type="button" data-depu-vino="${t.id}">Vino</button>`, 'no_vino')).join('')}</tbody></table></div>` : '<div class="vacio">No hay visitas vencidas sin cerrar.</div>';
+  const tI = inactivas.length ? `<div class="tabla"><table>${head}<tbody>${inactivas.map(q => depuFila(q, `${diasInactiva(q)} días sin movimiento`, 'mas_adelante')).join('')}</tbody></table></div>` : '<div class="vacio">No hay consultas inactivas con ese criterio.</div>';
+  return `<section class="vista"><div class="fila"><h2>Depurar</h2><div class="filtros"><label class="sub" style="display:flex;gap:6px;align-items:center">Sin movimiento hace más de<select id="f-depu-dias">${[7,15,30,45].map(n => `<option value="${n}" ${n===fDepuDias?'selected':''}>${n} días</option>`).join('')}</select></label></div></div>
+  <div class="sub" style="margin-bottom:12px">Marcá las consultas que ya no se trabajan y pasalas a "Viene más adelante" (si el cliente sigue interesado) o a Perdidos con un motivo.</div>
+  <div class="panel" style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b id="depu-n" style="display:inline">${depuSel.size} seleccionadas</b>
+    <select id="depu-motivo" aria-label="Destino"><option value="mas_adelante" selected>Pasar a "Viene más adelante"</option>${Object.entries(MOTIVOS).map(([k,v]) => `<option value="${k}">Perdido: ${v}</option>`).join('')}</select>
+    <button class="btn" type="button" id="depu-ok">Aplicar</button>
+    <button class="btn sec chico" type="button" data-depu-todas="1">Marcar todas</button><button class="btn sec chico" type="button" data-depu-todas="0">Quitar marcas</button><span class="error" id="depu-error" role="alert"></span></div>
+  <h3 style="margin:18px 0 8px">Visitas vencidas sin cerrar <span class="sub">(${vencidas.length})</span></h3>${tV}
+  <h3 style="margin:22px 0 8px">Sin movimiento hace más de ${fDepuDias} días <span class="sub">(${inactivas.length})</span></h3>${tI}</section>`;
+}
+document.addEventListener('change', e => {
+  const c = e.target.closest('[data-depu]'); if(c){ const id = Number(c.dataset.depu); c.checked ? depuSel.add(id) : depuSel.delete(id); const n = $('#depu-n'); if(n) n.textContent = depuSel.size+' seleccionadas'; return; }
+  if(e.target.id==='f-depu-dias'){ fDepuDias = Number(e.target.value); setTimeout(pintar,0); }
+});
+document.addEventListener('click', async e => {
+  const todas = e.target.closest('[data-depu-todas]');
+  if(todas){ const on = todas.dataset.depuTodas==='1'; document.querySelectorAll('[data-depu]').forEach(c => { c.checked = on; on ? depuSel.add(Number(c.dataset.depu)) : depuSel.delete(Number(c.dataset.depu)); }); const n = $('#depu-n'); if(n) n.textContent = depuSel.size+' seleccionadas'; return; }
+  const vino = e.target.closest('[data-depu-vino]');
+  if(vino){ const t = D.turnos.find(x => x.id===Number(vino.dataset.depuVino)); if(!t) return;
+    try{ await actualizar('turnos', t.id, {estado:'realizado'}); t.estado = 'realizado'; toast('Visita marcada como realizada. Si hubo venta, cargala desde el Pipeline.'); pintar(); }
+    catch(err){ $('#msg').textContent = 'No se pudo guardar: ' + (err.message||err); } return; }
+  if(e.target.id==='depu-ok'){
+    const ids = [...depuSel], motivo = $('#depu-motivo').value, err = $('#depu-error');
+    if(!ids.length){ err.textContent = 'Marcá al menos una consulta.'; return; }
+    e.target.disabled = true; err.textContent = '';
+    try{
+      for(const id of ids){
+        const q = D.consultas.find(x => x.id===id); if(!q) continue;
+        const campos = motivo==='mas_adelante' ? {estado:'mas_adelante'} : {estado:'perdida', motivo_perdida:motivo};
+        await actualizar('consultas', id, campos); Object.assign(q, campos);
+        const h = hoyStr();
+        for(const t of D.turnos.filter(t => t.consulta_id===id && ['agendado','confirmado'].includes(t.estado))){
+          const nuevo = t.fecha < h ? 'no_vino' : 'cancelado'; await actualizar('turnos', t.id, {estado:nuevo}); t.estado = nuevo;
+        }
+      }
+      depuSel = new Set(); toast(`${ids.length} ${ids.length===1?'consulta pasada':'consultas pasadas'} a ${motivo==='mas_adelante' ? '"Viene más adelante"' : 'Perdidos'}.`); pintar();
+    }catch(ex){ err.textContent = 'No se pudo completar: ' + (ex.message||ex) + '. ¿Ejecutaste permisos_perdidos.sql?'; e.target.disabled = false; }
+  }
+});
+
+const VISTAS = {panel:vPanel, pipeline:vPipeline, agenda:vAgenda, tareas:vTareas, consultas:vConsultas, perdidos:vPerdidos, depurar:vDepurar, contactos:vContactos};
 
 function pintar(){
   const foco = document.activeElement?.id;
@@ -1370,6 +1499,7 @@ function pintar(){
   const fo = $('#f-tarea-op'); if(fo) fo.value = fTareaOp;
   const nT = misPendientes().length, tb = document.querySelector('#tabs [data-v="tareas"]'); if(tb) tb.textContent = nT ? `Tareas (${nT})` : 'Tareas';
   renderNotif();
+  if(chatCtx && !$('#velo').hidden) pintarBarraChat();
   $('#usuario').textContent = D.perfiles.length ? `${yo().nombre || EMAIL} · ${esSup() ? 'Supervisor' : 'Operador'}` : EMAIL;
   if(foco==='busca' || foco==='perd-busca' || foco==='cons-busca'){ const i = $('#'+foco); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 }
@@ -1408,6 +1538,7 @@ $('#main').addEventListener('change', async e => {
       await actualizar(el.dataset.t, Number(el.dataset.id), {[el.dataset.c]: el.value.trim()===''&&el.dataset.c==='notas' ? null : el.value});
       { const f = D[el.dataset.t]?.find(x => x.id===Number(el.dataset.id)); if(f) f[el.dataset.c] = el.value; }
       if(vista==='perdidos' && el.dataset.c==='motivo_perdida') return pintar();
+      if(el.dataset.t==='turnos' && el.dataset.c==='estado' && el.value==='no_vino'){ const tt = D.turnos.find(x => x.id===Number(el.dataset.id)); if(tt) preguntarNoVino(tt.consulta_id); }
       const ok = el.parentElement.querySelector('.guardado'); if(ok){ ok.hidden = false; setTimeout(()=>ok.hidden = true, 1800); }
       if(!DEMO && el.dataset.t==='turnos') await recargar(false);
     }catch(err){ $('#msg').textContent = 'No se pudo guardar: ' + (err.message||err); }

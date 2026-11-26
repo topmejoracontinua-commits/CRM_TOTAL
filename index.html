@@ -1131,16 +1131,19 @@ function tarjetaConsulta(q){
 let fPipeDesde = '', fPipeHasta = '';   /* filtro de fecha del Pipeline (por fecha de ingreso) */
 function vPipeline(){
   const pasaFecha = iso => { if(!fPipeDesde && !fPipeHasta) return true; if(!iso) return false; const f = fechaLocal(iso); return (!fPipeDesde || f>=fPipeDesde) && (!fPipeHasta || f<=fPipeHasta); };
+  /* actividad: la consulta nueva, o la más reciente de un contacto que volvió a escribir en el período */
+  const ultimaDe = {}; D.consultas.forEach(q => { const u = ultimaDe[q.contacto_id]; if(!u || new Date(q.creada) > new Date(u.creada)) ultimaDe[q.contacto_id] = q; });
+  const pasaFechaQ = q => pasaFecha(q.creada) || (ultimaDe[q.contacto_id]===q && pasaFecha(ctDeId(q.contacto_id)?.ultimo_contacto));
   const conConsulta = new Set(D.consultas.map(q => q.contacto_id));
-  const nuevos = D.contactos.filter(c => !conConsulta.has(c.id) && pasaFecha(c.primer_contacto));
+  const nuevos = D.contactos.filter(c => !conConsulta.has(c.id) && (pasaFecha(c.primer_contacto) || pasaFecha(c.ultimo_contacto)));
   const cols = ETAPAS.map(e => {
     const items = e.k==='nuevo'
       ? (fAsig!=='todos' ? [] : nuevos).map(c => `<article class="tarjeta" draggable="true" data-contacto="${c.id}"><b>${esc(c.nombre||'Sin nombre')}</b>${chipsEtq(c)}<span class="sub">${esc(c.identificador)} · escribió ${fmtTs(c.primer_contacto)}</span><div class="acc">${btnChat(c)}<select data-mover-c="${c.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo').map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div></article>`)
-      : D.consultas.filter(q => q.estado===e.k && pasaAsig(q) && !archivada(q) && pasaFecha(q.creada)).map(tarjetaConsulta);
+      : D.consultas.filter(q => q.estado===e.k && pasaAsig(q) && !archivada(q) && pasaFechaQ(q)).map(tarjetaConsulta);
     return `<div class="col" data-etapa="${e.k}" style="--c:${e.c}"><h3><span class="pt"></span>${e.t}<span class="ct">${items.length}</span></h3>${items.join('') || '<div class="vacio-col">Sin elementos</div>'}</div>`;
   }).join('');
   const rangosP = [['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes'],['todo','Todo']].map(([k,t]) => { const r = rangoPanel(k), on = r.desde===fPipeDesde && r.hasta===fPipeHasta; return `<button class="btn ${on?'':'sec'} chico" type="button" data-pipe-rango="${k}" aria-pressed="${on}">${t}</button>`; }).join('');
-  const filtroFecha = `<div class="fila" style="margin-top:-6px"><div class="filtros" style="align-items:center"><span class="sub">Ingresaron:</span>${rangosP}<label class="sub" style="display:flex;gap:6px;align-items:center">Desde<input type="date" id="f-pipe-desde" value="${esc(fPipeDesde)}" max="${esc(fPipeHasta)}"></label><label class="sub" style="display:flex;gap:6px;align-items:center">Hasta<input type="date" id="f-pipe-hasta" value="${esc(fPipeHasta)}" min="${esc(fPipeDesde)}"></label></div></div>`;
+  const filtroFecha = `<div class="fila" style="margin-top:-6px"><div class="filtros" style="align-items:center"><span class="sub">Con actividad:</span>${rangosP}<label class="sub" style="display:flex;gap:6px;align-items:center">Desde<input type="date" id="f-pipe-desde" value="${esc(fPipeDesde)}" max="${esc(fPipeHasta)}"></label><label class="sub" style="display:flex;gap:6px;align-items:center">Hasta<input type="date" id="f-pipe-hasta" value="${esc(fPipeHasta)}" min="${esc(fPipeDesde)}"></label></div></div>`;
   return `<section class="vista"><div class="fila"><h2>Pipeline</h2><span class="sub">Arrastrá una tarjeta a otra columna o usá "Mover a…" para cambiar la etapa.${D.consultas.some(archivada) ? ` · ${D.consultas.filter(archivada).length} ${D.consultas.filter(archivada).length===1?'archivada':'archivadas'} por inactividad (en Consultas)` : ''}</span><div class="filtros">${selAsig()}</div></div>${filtroFecha}<div class="tablero">${cols}</div></section>`;
 }
 async function moverContacto(contactoId, etapa){

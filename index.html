@@ -263,6 +263,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 .burbuja{max-width:85%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px}
 .burbuja.cli{align-self:flex-start;background:var(--verde-3);border-top-left-radius:3px}
 .burbuja.bot{align-self:flex-end;background:#f26a2124;border:1px solid var(--naranja);border-top-right-radius:3px}
+.burbuja .hora{display:block;text-align:right;font-size:11px;color:var(--apagado);margin-top:4px}
 .burbuja small{display:block;font:700 11px var(--f-label);letter-spacing:.06em;text-transform:uppercase;color:var(--apagado);margin-bottom:3px}
 .burbuja.bot small{color:var(--naranja)}
 /* Chat estilo teléfono (WhatsApp) */
@@ -487,9 +488,13 @@ const btnChat = c => c?.identificador ? `<button class="btn sec chico" type="but
 const textoMsg = m => { const c = m?.content; const t = typeof c==='string' ? c : JSON.stringify(c ?? ''); return t.replace(/\s*FOTO:[^\n]*/gi,'').trim(); };
 const esTecnico = t => { if(/^\[\s*\]$/.test(t) || /^Calling tools?\s*:/i.test(t)) return true; if(/^[\[{]/.test(t)){ try{ JSON.parse(t); return true; }catch(e){} } return false; };
 async function traerChat(ident){
-  if(DEMO) return [{id:1,message:{type:'human',content:'Hola, precio de 265/60R18?'}},{id:2,message:{type:'ai',content:'¡Hola! Tenemos Westlake en 265/60R18. ¿Querés que te pase el presupuesto por 4?'}},{id:3,message:{type:'human',content:'Sí, y pasar mañana a colocarlas'}},{id:4,message:{type:'ai',content:'Perfecto, te agendé para mañana a las 09:00. ¡Te esperamos!'}}];
-  let r = await db.from('n8n_chat_histories').select('id,message').eq('session_id', ident).order('id');
-  if(!r.error && !r.data.length) r = await db.from('n8n_chat_histories').select('id,message').ilike('session_id','%'+ident+'%').order('id');
+  if(DEMO) return [{id:1,message:{type:'human',content:'Hola, precio de 265/60R18?'}},{id:2,message:{type:'ai',content:'¡Hola! Tenemos Westlake en 265/60R18. ¿Querés que te pase el presupuesto por 4?'}},{id:3,message:{type:'human',content:'Sí, y pasar mañana a colocarlas'}},{id:4,message:{type:'ai',content:'Perfecto, te agendé para mañana a las 09:00. ¡Te esperamos!'}}].map((x,k,a) => ({...x, created_at:new Date(Date.now()-(a.length-k)*900000).toISOString()}));
+  let r;
+  for(const cols of ['id,message,created_at','id,message']){   /* si todavía no existe created_at, reintenta sin esa columna */
+    r = await db.from('n8n_chat_histories').select(cols).eq('session_id', ident).order('id');
+    if(!r.error && !r.data.length) r = await db.from('n8n_chat_histories').select(cols).ilike('session_id','%'+ident+'%').order('id');
+    if(!r.error) break;
+  }
   if(r.error) throw r.error;
   return r.data;
 }
@@ -537,7 +542,7 @@ document.addEventListener('click', e => { const im = e.target.closest && e.targe
 function burbuja(x, c){
   const bot = x.message.type==='ai', raw = textoMsg(x.message), im = raw.match(RE_IMG), txt = sinImg(raw), a = bot ? txt.match(RE_ASESOR) : null, ase = !!a;
   const foto = im ? `<img class="foto-chat" data-img="${esc(im[1])}" alt="Foto enviada por el cliente">` : '';
-  return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${foto}${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}</div>`;
+  return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${foto}${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}${x.created_at ? `<time class="hora" datetime="${esc(x.created_at)}">${fmtTs(x.created_at)}</time>` : ''}</div>`;
 }
 /* Etapa del contacto desde el chat: la consulta más reciente (prefiere una activa) */
 function consultaDeChat(){
@@ -655,7 +660,7 @@ async function enviarMensaje(){
       if(r.status===401) throw new Error('sesión no válida, volvé a ingresar');
       if(!r.ok) throw new Error('el servidor respondió ' + r.status);
     }
-    chatCtx.msgs.push({id:Date.now(), message:{type:'ai', content:'[Asesor:' + nombreAsesor() + '] ' + texto}});
+    chatCtx.msgs.push({id:Date.now(), created_at:new Date().toISOString(), message:{type:'ai', content:'[Asesor:' + nombreAsesor() + '] ' + texto}});
     const ct = contactoDe(chatCtx.ident); if(ct) ct.bot_pausado_hasta = new Date(Date.now()+2*3600*1000).toISOString();
     area.value = ''; renderChat(); renderPie();
   }catch(err){ $('#chat-error').textContent = 'No se pudo enviar: ' + (err.message||err); btn.disabled = false; }
